@@ -301,7 +301,7 @@ desktop_setup() {
 			gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 40
 			gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
 			gsettings set org.gnome.shell.extensions.dash-to-dock extend-height false
-			gsettings set org.gnome.shell favorite-apps "['firefox.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop']"
+			gsettings set org.gnome.shell favorite-apps "['virtualbox.desktop','firefox.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop']"
 			gsettings set org.gnome.shell.extensions.dash-to-dock unity-backlit-items false
 
 			gsettings set org.gnome.desktop.interface show-battery-percentage true
@@ -344,10 +344,51 @@ desktop_setup() {
 		fi
 
 		# }}
+		# {{ Browsers
+
+		echo -e "    [${blue}>${reset}] browser"
+
+		
+		[ ! -x "$(command -v google-chrome)" ] && {
+			printf "        [${blue}+${reset}] chrome"
+			printf "\r"
+			sudo apt -qq update &> /dev/null
+			deb_file="/tmp/google-chrome-stable_current_amd64.deb"
+			[ ! -f ${deb_file} ] && {
+				wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O ${deb_file} &> /dev/null
+			}
+			sudo apt -y -qq install ${deb_file} &> /dev/null
+
+			echo -e "        [${green}*${reset}] chrome"
+		}
+
+		# }}
 
 	fi
 
 	# }}
+}
+
+# }}
+# {{ Virtualization Setup
+
+virtualization_setup() {
+	echo -e "[${blue}>${reset}] virtualization"
+
+	[ ${GUI} == True ] && {
+		printf "    [${blue}+${reset}] virtualbox"
+		printf "\r"
+		(sudo dmidecode | grep -iq virtualbox) && {
+			#Note: Need VirtualBox 4.2.xx+ for the host (http://docs.kali.org/general-use/kali-linux-virtual-box-guest)
+			sudo apt -y -qq install virtualbox-guest-x11 &> /dev/null
+		} || {
+			#--- install virtualbox
+			sudo apt -y -qq install virtualbox &> /dev/null
+			#--- install virtualbox extension pack
+			# sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
+		}
+		echo -e "    [${green}*${reset}] virtualbox"
+	}
 }
 
 # }}
@@ -574,6 +615,78 @@ development_setup() {
 	# }}
 
 	# }}
+	#---------------------------------------------------------------------------------
+	# {{ CONTAINERIZATION
+
+	echo -e "    [${blue}>${reset}] containerization"
+
+	# {{ DOCKER
+
+	printf "        [${blue}+${reset}] docker engine"
+	printf "\r"
+
+	#--- uninstall older versions of docker
+	sudo apt remove docker docker-engine docker.io containerd runc &> /dev/null
+
+	[ ! -x "$(command -v docker)" ] && {
+		#--- setup repository
+		sudo apt update &> /dev/null
+
+		sudo apt -y -qq install \
+			apt-transport-https \
+			ca-certificates \
+			curl \
+			gnupg \
+			lsb-release &> /dev/null
+
+		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+		sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable' > /etc/apt/sources.list.d/docker.list"
+
+		sudo apt update &> /dev/null
+		#--- install docker engine
+		sudo apt -y -qq install docker-ce docker-ce-cli containerd.io &> /dev/null
+	}
+
+	# > Manage Docker as a non-root user
+	# > create the docker group.
+	# sudo groupadd docker
+	# > add your user to the docker group.
+	sudo usermod -aG docker $USER
+	# >  activate the changes to groups
+	# newgrp docker 
+
+	echo -e "        [${green}*${reset}] docker engine"
+
+	# }}
+	# {{ DOCKER COMPOSE
+
+	printf "        [${blue}+${reset}] docker compose"
+	printf "\r"
+	
+	[ ! -x "$(command -v docker-compose)" ] && {
+		sudo curl -sL "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+		sudo chmod +x /usr/local/bin/docker-compose
+	}
+
+	echo -e "        [${green}*${reset}] docker compose"
+
+	# }}
+	# {{ DOCKER MACHINE
+
+	printf "        [${blue}+${reset}] docker machine"
+	printf "\r"
+
+	[ ! -x "$(command -v docker-machine)" ] && {
+		sudo curl -sL "https://github.com/docker/machine/releases/download/v0.16.2/docker-machine-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-machine
+		sudo chmod +x /usr/local/bin/docker-machine
+	}
+
+	echo -e "        [${green}*${reset}] docker machine"
+
+	# }}
+
+	# }}
 
 	# }}
 
@@ -584,6 +697,12 @@ development_setup() {
 
 clean_up() {
 	echo -e "[${blue}>${reset}] clean up"
+
+	# Purge the default software
+	# sudo apt-get remove --purge libreoffice*
+	# sudo apt-get remove --purge thunderbird* 
+	# sudo apt-get remove --purge rhythmbox* 
+	# sudo apt-get remove --purge aisleriot gnome-mahjongg gnome-mines gnome-sudoku 
 
 	printf "    [${blue}+${reset}] auto(remove|clean)"
 	printf "\r"
@@ -613,6 +732,7 @@ do
 			fonts_setup
 			terminal_setup
 			desktop_setup
+			virtualization_setup
 			development_setup
 			clean_up
 		;;
