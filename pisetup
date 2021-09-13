@@ -1,0 +1,633 @@
+#!/usr/bin/env bash
+
+red="\033[01;31m"
+blue="\033[01;34m"
+green="\033[01;32m"
+yellow="\033[01;33m"
+
+bold="\033[01;01m"
+
+reset="\033[00m"
+
+script_name=${0##*/}
+script_dir="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
+
+GUI=False
+DE=
+
+type Xorg > /dev/null 2>&1 && GUI=True
+
+if [ ${GUI} == True ]
+then
+	if [ "$XDG_CURRENT_DESKTOP" = "" ]
+	then
+		DE=$(echo "$XDG_DATA_DIRS" | sed 's/.*\(xfce\|kde\|gnome\).*/\1/')
+	else
+		DE=$(echo "$XDG_CURRENT_DESKTOP" | grep -Eoi 'xfce|kde|gnome|mate|cinnamon|lxde|jwm')
+	fi
+
+	DE=${DE,,}  # convert to lower case
+fi
+
+git_clone() {
+	if [ -d ${2} ]
+	then
+		git -C ${2} pull origin master &> /dev/null
+	else
+		git clone ${1} ${2} &> /dev/null
+	fi
+}
+
+# {{ DISPLAY BANNER
+
+display_banner() {
+echo -e ${bold}${blue}"
+       _          _               
+ _ __ (_)___  ___| |_ _   _ _ __  
+| '_ \| / __|/ _ \ __| | | | '_ \ 
+| |_) | \__ \  __/ |_| |_| | |_) |
+| .__/|_|___/\___|\__|\__,_| .__/ 
+|_| ${yellow}Post Install Setup${blue}     |_| ${red}v1.0.0
+"${reset}
+}
+
+# }}
+# {{ DISPLAY USAGE
+
+display_usage() {
+	display_banner
+
+	while read -r line
+	do
+		printf "%b\n" "${line}"
+	done <<-EOF
+	\rUSAGE:
+	\r  ${script_name} [OPTIONS]
+
+	\rOPTIONS:
+
+EOF
+}
+
+# }}
+# {{ FUNCTIONS
+
+# {{ update & upgrade
+
+update_and_upgrade() {
+	echo -e "[${blue}>${reset}] up(date|grade)"
+
+	export DEBIAN_FRONTEND=noninteractive
+
+	sudo apt -qq update &> /dev/null \
+		&& sudo APT_LISTCHANGES_FRONTEND=none apt -o Dpkg::Options::="--force-confnew" -y dist-upgrade --fix-missing &> /dev/null \
+			|| echo -e "    [${red}-${reset}] failed!"
+}
+
+# }}
+# {{ fonts setup
+
+fonts_setup() {
+	echo -e "[${blue}>${reset}] fonts"
+
+	fonts_dir=${HOME}/.local/share/fonts; [ ! -e "${fonts_dir}" ] && mkdir -p ${fonts_dir}
+
+	# {{ NORMAL FONTS
+
+	echo -e "    [${blue}>${reset}] normal fonts"
+
+	# {{ Victor Mono
+
+	printf "        [${blue}+${reset}] Victor Mono"
+	printf "\r"
+	name="VictorMono"
+	weights=(Light Regular Medium Bold)
+
+	missing_fonts=()
+
+	for weight in "${weights[@]}"
+	do
+		font="${name}-${weight}.ttf"
+
+		if [ ! -e "${fonts_dir}/${font}" ]
+		then
+			missing_fonts+=(${font})
+		fi
+	done
+
+	if [ ${#missing_fonts[@]} -gt 0 ]
+	then
+
+		[ ! -e /tmp/VictorMonoAll.zip ] && {
+				curl -sL https://rubjo.github.io/victor-mono/VictorMonoAll.zip -o /tmp/VictorMonoAll.zip;
+		}
+
+		unzip -qd /tmp/VictorMonoAll /tmp/VictorMonoAll.zip; cp -f /tmp/VictorMonoAll/TTF/* ${HOME}/.local/share/fonts/
+		echo
+	fi
+	echo -e "        [${green}*${reset}] Victor Mono"
+
+	# }}
+
+	# }}
+	# {{ PATCHED FONTS [NERD FONT](https://www.nerdfonts.com/)
+
+	echo -e "    [${blue}>${reset}] patched fonts"
+
+	# {{ Victor Mono Nerd Font
+
+	printf "        [${blue}+${reset}] Victor Mono Nerd Font"
+	printf "\r"
+	name="VictorMono"
+	weights=(Light Regular Medium Bold)
+
+	missing_fonts=()
+
+	for weight in "${weights[@]}"
+	do
+		font="${name} ${weight} Nerd Font Complete.ttf"
+
+		if [ ! -e "${fonts_dir}/${font}" ]
+		then
+			missing_fonts+=(${font})
+		fi
+	done
+
+	if [ ${#missing_fonts[@]} -gt 0 ]
+	then
+		for weight in "${weights[@]}"
+		do
+			font="$name $weight Nerd Font Complete.ttf"
+
+			[ ! -e "${fonts_dir}/${font}" ] && {
+				curl -sL https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/${name}/${weight}/complete/Victor%20Mono%20${weight}%20Nerd%20Font%20Complete.ttf -o "${fonts_dir}/${font}";
+			}
+		done
+	fi
+	echo -e "        [${green}*${reset}] Victor Mono Nerd Font"
+
+	# }}
+
+	# }}
+}
+
+# }}
+# {{
+
+terminal_setup() {
+	echo -e "[${blue}>${reset}] terminal"
+
+	# {{ SHELL (ZSH)
+
+	echo -e "    [${blue}>${reset}] shell"
+
+	# {{ ZSH
+
+	printf "        [${blue}+${reset}] ZSH"
+	printf "\r"
+
+	if [ ! -x "$(command -v zsh)" ]
+	then
+		sudo apt -y -qq install zsh &> /dev/null
+	fi
+
+	if [ "${SHELL}" != "$(which zsh)" ]
+	then
+		sudo chsh -s $(which zsh) ${USER}
+	fi
+
+	# ohmyzsh
+	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" &> /dev/null
+
+	# zsh-autosuggestions
+	git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+	# zsh-syntax-highlighting
+	git_clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+
+	cp -f ${script_dir}/dotfiles/.zshrc ${HOME}/.zshrc
+	cp -f ${script_dir}/dotfiles/.zprofile ${HOME}/.zprofile
+
+	echo -e "        [${green}*${reset}] ZSH"
+
+	# }}
+
+	# }}
+	# {{ MULTIPLEXER
+
+	echo -e "    [${blue}>${reset}] multiplexer"
+
+	# {{ TMUX
+
+	printf "        [${blue}+${reset}] TMUX"
+	printf "\r"
+
+	if [ ! -x "$(command -v tmux)" ]
+	then
+		sudo apt -y -qq install tmux &> /dev/null
+	fi
+
+	cp -f ${script_dir}/dotfiles/.tmux.conf ${HOME}/.tmux.conf
+
+	directory="${HOME}/.tmux/plugins"; [ ! -d ${directory} ] && mkdir -p ${directory}
+
+	git_clone "https://github.com/tmux-plugins/tpm" "${directory}/tpm"
+
+	${directory}/tpm/bin/install_plugins &> /dev/null
+
+	echo -e "        [${green}*${reset}] TMUX"
+
+	# }}
+
+	# }}
+	# {{ EMULATOR (GNOME Terminal)
+
+	if [ ${GUI} == True ]
+	then
+		echo -e "    [${blue}>${reset}] emulator"
+
+		## {{ GNOME Terminal
+
+		if [ ${DE} == "gnome" ]
+		then
+			printf "        [${blue}+${reset}] GNOME Terminal"
+			printf "\r"
+
+			GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
+
+			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ visible-name "Alex Munene's ..."
+
+			# Text Appearance
+			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-columns 80
+			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-rows 24
+			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ use-system-font false
+			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ font 'VictorMono Nerd Font 12'
+
+			# Cursor
+			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-shape 'ibeam'
+			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-blink-mode 'on'
+			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-colors-set false
+
+			echo -e "        [${green}*${reset}] GNOME Terminal"
+		fi
+
+		# }}
+
+	fi
+
+	# }}
+}
+
+# }}
+# {{
+
+desktop_setup() {
+	# {{ ENVIRONMENT
+
+	if [ ${GUI} == True ]
+	then
+		echo -e "[${blue}>${reset}] desktop"
+
+		# # {{ GNOME
+
+		if [ ${DE} == "gnome" ]
+		then
+			printf "    [${blue}+${reset}] GNOME"
+			printf "\r"
+			# Dash to Dock
+			gsettings set org.gnome.shell.extensions.dash-to-dock autohide true
+			gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed false
+			gsettings set org.gnome.shell.extensions.dash-to-dock intellihide true
+			gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize'
+			gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 40
+			gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
+			gsettings set org.gnome.shell.extensions.dash-to-dock extend-height false
+			gsettings set org.gnome.shell favorite-apps "['firefox.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop']"
+			gsettings set org.gnome.shell.extensions.dash-to-dock unity-backlit-items false
+
+			gsettings set org.gnome.desktop.interface show-battery-percentage true
+
+			
+
+			gsettings set org.gnome.shell.extensions.dash-to-dock show-windows-preview true
+			gsettings set org.gnome.shell.extensions.dash-to-dock show-favorites true
+			gsettings set org.gnome.shell.extensions.dash-to-dock show-trash true
+			gsettings set org.gnome.shell.extensions.dash-to-dock show-mounts true
+
+			gsettings set org.gnome.shell.extensions.dash-to-dock animation-time 0.2
+
+			gsettings set org.gnome.shell.extensions.dash-to-dock scroll-action cycle-windows
+
+			# gsettings set org.gnome.shell.extensions.desktop-icons show-trash false
+			# gsettings set org.gnome.shell.extensions.desktop-icons show-home false
+			# gsettings set org.gnome.shell.extensions.desktop-icons icon-size 'small'
+
+			gsettings set org.gnome.shell.extensions.ding show-trash false
+			gsettings set org.gnome.shell.extensions.ding show-home false
+			gsettings set org.gnome.shell.extensions.ding show-volumes false
+			# TOP BAR
+			gsettings set org.gnome.desktop.interface clock-show-weekday true
+			gsettings set org.gnome.desktop.interface clock-show-seconds true
+			gsettings set org.gnome.desktop.interface clock-show-date true
+			# Mouse
+			gsettings set org.gnome.desktop.peripherals.mouse natural-scroll false
+			# Touchpad
+			gsettings set org.gnome.desktop.peripherals.touchpad disable-while-typing true
+			gsettings set org.gnome.desktop.peripherals.touchpad click-method 'fingers'
+			gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click  true
+			gsettings set org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true
+			# WINDOWS TITLEBAR
+			gsettings set org.gnome.desktop.wm.preferences action-double-click-titlebar toggle-maximize
+			gsettings set org.gnome.desktop.wm.preferences action-middle-click-titlebar minimize
+			gsettings set org.gnome.desktop.wm.preferences action-right-click-titlebar menu
+
+			echo -e "    [${green}*${reset}] gnome"
+		fi
+
+		# }}
+
+	fi
+
+	# }}
+}
+
+# }}
+# {{ Development Setup
+
+development_setup() {
+	echo -e "[${blue}>${reset}] development"
+
+	#------------------------------------------------------------------------------------
+	# {{ VERSION CONTROL
+
+	echo -e "    [${blue}>${reset}] version control"
+
+	# {{ VERSION CONTROL: GIT
+
+	printf "        [${blue}+${reset}] git"
+	printf "\r"
+
+	[ ! -x "$(command -v git)" ] && {
+		sudo apt -y -qq git &> /dev/null
+	}
+	[ -x "$(command -v git)" ] && {
+		# Your Identity
+		git config --global user.name "Alex Munene"
+		git config --global user.email "62714471+enenumxela@users.noreply.github.com"
+		# Your Editor
+		git config --global core.editor vim
+		# Your default branch name
+		git config --global init.defaultBranch main
+
+		git config --global url."https://enenumxela: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@github.com/".insteadOf "https://github.com/"
+	}
+
+	echo -e "        [${green}*${reset}] git"
+
+	# }}
+
+	# }}
+	#---------------------------------------------------------------------------------
+	# {{ TEXT EDITOR
+
+	echo -e "    [${blue}>${reset}] text editor|IDE"
+
+	# {{ TEXT EDITOR: VIM
+
+	printf "        [${blue}+${reset}] VIM"
+	printf "\r"
+
+	[ ! -x "$(command -v vim)" ] && {
+		sudo apt -y -qq install vim &> /dev/null
+	}
+
+	directory="${HOME}/.vim"
+	[ ! -d ${directory}/colors ] && mkdir -p ${directory}/colors
+	[ ! -d ${directory}/bundle ] && mkdir -p ${directory}/bundle
+	[ ! -d ${directory}/autoload ] && mkdir -p ${directory}/autoload
+
+	# {{ PLUGIN MANAGER
+
+	[ -e "${directory}/autoload/pathogen.vim" ] && rm -rf ${directory}/autoload/pathogen.vim
+	curl -sL https://tpo.pe/pathogen.vim -o ${directory}/autoload/pathogen.vim
+
+	# }}
+	# {{ THEME
+
+	[ -e "${directory}/autoload/onedark.vim" ] && {
+		rm -rf ${directory}/autoload/onedark.vim
+	}
+	curl -sL https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/onedark.vim -o ${directory}/autoload/onedark.vim
+
+	[ -e "${directory}/colors/onedark.vim" ] && {
+		rm -rf ${directory}/colors/onedark.vim
+	}
+	curl -sL https://raw.githubusercontent.com/joshdick/onedark.vim/master/colors/onedark.vim -o ${directory}/colors/onedark.vim
+
+	[ ! -e "${directory}/autoload/airline/themes" ] && {
+		mkdir -p ${directory}/autoload/airline/themes
+	}
+	[ -e "${directory}/autoload/airline/themes/onedark.vim" ] && {
+		rm -rf ${directory}/autoload/airline/themes/onedark.vim
+	}
+	curl -sL https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/airline/themes/onedark.vim -o ${directory}/autoload/airline/themes/onedark.vim
+
+	# }}
+
+	git_clone "https://github.com/preservim/nerdtree.git" "${directory}/bundle/nerdtree"
+	git_clone "https://github.com/ryanoasis/vim-devicons.git" "${directory}/bundle/vim-devicons"
+	git_clone "https://github.com/vim-airline/vim-airline.git" "${directory}/bundle/vim-airline"
+	git_clone "https://github.com/airblade/vim-gitgutter.git" "${directory}/bundle/vim-gitgutter"
+	git_clone "https://github.com/Xuyuanp/nerdtree-git-plugin.git" "${directory}/bundle/nerdtree-git-plugin"
+	git_clone "https://github.com/tpope/vim-fugitive.git" "${directory}/bundle/vim-fugitive"
+
+	cp -f ${script_dir}/dotfiles/.vimrc ${HOME}/.vim/vimrc
+
+	echo -e "        [${green}*${reset}] VIM"
+
+	# }}
+	# {{ TEXT EDITOR: VISUAL STUDIO CODE
+
+	if [ ${GUI} == True ]
+	then
+		printf "        [${blue}+${reset}] visual studio code"
+		printf "\r"
+
+		[ ! -x "$(command -v code)" ] && {
+			curl -s https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
+
+			sudo install -o root -g root -m 644 /tmp/packages.microsoft.gpg /usr/share/keyrings/
+
+			[ ! -f /etc/apt/sources.list.d/vscode.list ] && {
+				sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
+			}
+
+			sudo apt -y -qq update &> /dev/null && sudo apt -y -qq install code &> /dev/null
+		}
+
+		vscode_extensions=(
+			golang.go
+			eamodio.gitlens
+			ms-python.python
+			mhutchie.git-graph
+			james-yu.latex-workshop
+			pkief.material-icon-theme
+			enenumxela.signed-dark-pro
+			ms-azuretools.vscode-docker
+			coenraads.bracket-pair-colorizer
+			christian-kohler.path-intellisense
+			shd101wyy.markdown-preview-enhanced
+			)
+		missing_vscode_extensions=()
+
+		for i in "${vscode_extensions[@]}"
+		do
+			if [ "$(code --list-extensions | grep '${i}')" == "" ]
+			then
+				missing_vscode_extensions+=(${i})
+			fi
+		done
+
+		if [ ${#missing_vscode_extensions[@]} -gt 0 ]
+		then
+			for i in "${missing_vscode_extensions[@]}"
+			do
+				code --install-extension ${i} &> /dev/null
+			done
+		fi
+
+		cp -f ${script_dir}/dotfiles/vscode/settings.json ${HOME}/.config/Code/User/settings.json
+
+		echo -e "        [${green}*${reset}] visual studio code"
+
+	fi
+
+	# }}
+
+	# }}
+	#---------------------------------------------------------------------------------
+	# {{ LANGUAGES
+
+	echo -e "    [${blue}>${reset}] language|frameworks|runtime"
+
+	# {{ LANGUAGES: GOLANG
+
+	printf "        [${blue}+${reset}] golang"
+	printf "\r"
+
+	[ ! -x "$(command -v go)" ] && {
+		version=1.17.1
+
+		wget https://golang.org/dl/go${version}.linux-amd64.tar.gz -O /tmp/go${version}.linux-amd64.tar.gz &> /dev/null
+
+		sudo tar -xzf /tmp/go${version}.linux-amd64.tar.gz -C /usr/local
+
+		(grep -q "export PATH=\$PATH:/usr/local/go/bin" ~/.profile) || {
+			export PATH=$PATH:/usr/local/go/bin
+			echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.profile
+			source ~/.profile
+		}
+	}
+
+	echo -e "        [${green}*${reset}] golang"
+
+	# }}
+	# {{ LANGUAGES: NODEJS
+
+	printf "        [${blue}+${reset}] node (nvm)"
+	printf "\r"
+
+	[ ! -x "$(command -v nvm)" ] && {
+		curl -sSL https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash - &> /dev/null
+		
+
+		export NVM_DIR="$HOME/.nvm"
+		[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+		[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+		source ${HOME}/.bashrc
+
+		nvm install node &> /dev/null
+	}
+
+	echo -e "        [${green}*${reset}] node (nvm)"
+
+	# }}
+	# {{ LANGUAGES: PYTHON3
+
+	printf "        [${blue}+${reset}] python3"
+	printf "\r"
+
+	[ ! -x "$(command -v python3)" ] || [ ! -x "$(command -v pip3)" ] && {
+		sudo apt -y -qq install python3 python3-pip &> /dev/null
+	}
+
+	echo -e "        [${green}*${reset}] python3"
+
+	# }}
+	# {{ LANGUAGES: LATEX
+
+	printf "        [${blue}+${reset}] latex"
+	printf "\r"
+	sudo apt -y -qq install texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
+	echo -e "        [${green}*${reset}] latex"
+
+	# }}
+
+	# }}
+
+	# }}
+
+}
+
+# }}
+# {{ clean up
+
+clean_up() {
+	echo -e "[${blue}>${reset}] clean up"
+
+	printf "    [${blue}+${reset}] auto(remove|clean)"
+	printf "\r"
+
+	for task in autoremove autoclean clean
+	do
+		sudo apt -y -qq ${task} &> /dev/null
+	done
+
+	echo -e "    [${green}*${reset}] auto(remove|clean)"
+}
+
+# }}
+
+# }}
+# {{ MAIN
+
+while [[ "${#}" -gt 0 && ."${1}" == .-* ]]
+do
+	arg=${1}
+
+	case "$(echo ${arg} | tr '[:upper:]' '[:lower:]')" in
+		-all)
+			display_banner
+
+			update_and_upgrade
+			fonts_setup
+			terminal_setup
+			desktop_setup
+			development_setup
+			clean_up
+		;;
+		-h | --help)
+			display_usage
+			exit 0
+		;;
+		*)
+			display_usage
+			exit 1
+		;;
+	esac
+	shift
+done
+
+# }}
+
+echo
