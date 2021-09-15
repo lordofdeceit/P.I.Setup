@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
+# colors
 red="\033[01;31m"
 blue="\033[01;34m"
 green="\033[01;32m"
 yellow="\033[01;33m"
-
+# formatting
 bold="\033[01;01m"
-
+# reset colors & formatting
 reset="\033[00m"
 
 script_name=${0##*/}
@@ -14,6 +15,9 @@ script_dir="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
 GUI=False
 DE=
+
+VM=False
+VB_VM=False
 
 type Xorg > /dev/null 2>&1 && GUI=True
 
@@ -28,6 +32,8 @@ then
 
 	DE=${DE,,}  # convert to lower case
 fi
+
+(sudo dmidecode | grep -iq virtualbox) && VM=True && VB_VM=True
 
 git_clone() {
 	if [ -d ${2} ]
@@ -90,7 +96,7 @@ update_and_upgrade() {
 fonts_setup() {
 	echo -e "[${blue}>${reset}] fonts"
 
-	fonts_dir=${HOME}/.local/share/fonts; [ ! -e "${fonts_dir}" ] && mkdir -p ${fonts_dir}
+	local fonts_dir=${HOME}/.local/share/fonts; [ ! -e "${fonts_dir}" ] && mkdir -p ${fonts_dir}
 
 	# {{ NORMAL FONTS
 
@@ -198,7 +204,6 @@ terminal_setup() {
 
 	# ohmyzsh
 	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" &> /dev/null
-
 	# zsh-autosuggestions
 	git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 	# zsh-syntax-highlighting
@@ -228,7 +233,7 @@ terminal_setup() {
 
 	cp -f ${script_dir}/dotfiles/.tmux.conf ${HOME}/.tmux.conf
 
-	directory="${HOME}/.tmux/plugins"; [ ! -d ${directory} ] && mkdir -p ${directory}
+	local directory="${HOME}/.tmux/plugins"; [ ! -d ${directory} ] && mkdir -p ${directory}
 
 	git_clone "https://github.com/tmux-plugins/tpm" "${directory}/tpm"
 
@@ -252,7 +257,7 @@ terminal_setup() {
 			printf "        [${blue}+${reset}] GNOME Terminal"
 			printf "\r"
 
-			GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
+			local GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
 
 			gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ visible-name "Alex Munene's ..."
 
@@ -348,19 +353,25 @@ desktop_setup() {
 
 		echo -e "    [${blue}>${reset}] browser"
 
+		# {{ CHROME
+
+		printf "        [${blue}+${reset}] chrome"
+		printf "\r"
 		
 		[ ! -x "$(command -v google-chrome)" ] && {
-			printf "        [${blue}+${reset}] chrome"
-			printf "\r"
 			sudo apt -qq update &> /dev/null
-			deb_file="/tmp/google-chrome-stable_current_amd64.deb"
+
+			local deb_file="/tmp/google-chrome-stable_current_amd64.deb"
 			[ ! -f ${deb_file} ] && {
 				wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O ${deb_file} &> /dev/null
 			}
-			sudo apt -y -qq install ${deb_file} &> /dev/null
 
-			echo -e "        [${green}*${reset}] chrome"
+			sudo apt -y -qq install ${deb_file} &> /dev/null
 		}
+
+		echo -e "        [${green}*${reset}] chrome"
+
+		# }}
 
 		# }}
 
@@ -378,15 +389,24 @@ virtualization_setup() {
 	[ ${GUI} == True ] && {
 		printf "    [${blue}+${reset}] virtualbox"
 		printf "\r"
-		(sudo dmidecode | grep -iq virtualbox) && {
-			#Note: Need VirtualBox 4.2.xx+ for the host (http://docs.kali.org/general-use/kali-linux-virtual-box-guest)
-			sudo apt -y -qq install virtualbox-guest-x11 &> /dev/null
-		} || {
+
+		if [ ${VM} == False ]
+		then
 			#--- install virtualbox
-			sudo apt -y -qq install virtualbox &> /dev/null
-			#--- install virtualbox extension pack
-			# sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
-		}
+			[ ! -x "$(command -v virtualbox)" ] && {
+				sudo apt -y -qq install virtualbox &> /dev/null
+			}
+			
+			# --- install virtualbox extension pack
+			export DEBIAN_FRONTEND=noninteractive
+			sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
+		fi
+
+		if [ ${VB_VM} == True ]
+		then
+			sudo apt -y -qq install virtualbox-guest-x11 &> /dev/null
+		fi
+
 		echo -e "    [${green}*${reset}] virtualbox"
 	}
 }
@@ -397,7 +417,6 @@ virtualization_setup() {
 development_setup() {
 	echo -e "[${blue}>${reset}] development"
 
-	#------------------------------------------------------------------------------------
 	# {{ VERSION CONTROL
 
 	echo -e "    [${blue}>${reset}] version control"
@@ -441,7 +460,7 @@ development_setup() {
 		sudo apt -y -qq install vim &> /dev/null
 	}
 
-	directory="${HOME}/.vim"
+	local directory="${HOME}/.vim"
 	[ ! -d ${directory}/colors ] && mkdir -p ${directory}/colors
 	[ ! -d ${directory}/bundle ] && mkdir -p ${directory}/bundle
 	[ ! -d ${directory}/autoload ] && mkdir -p ${directory}/autoload
@@ -510,6 +529,7 @@ development_setup() {
 			eamodio.gitlens
 			ms-python.python
 			mhutchie.git-graph
+			dbaeumer.vscode-eslint
 			james-yu.latex-workshop
 			pkief.material-icon-theme
 			enenumxela.signed-dark-pro
@@ -556,7 +576,7 @@ development_setup() {
 	printf "\r"
 
 	[ ! -x "$(command -v go)" ] && {
-		version=1.17.1
+		local version=1.17.1
 
 		wget https://golang.org/dl/go${version}.linux-amd64.tar.gz -O /tmp/go${version}.linux-amd64.tar.gz &> /dev/null
 
@@ -615,7 +635,6 @@ development_setup() {
 	# }}
 
 	# }}
-	#---------------------------------------------------------------------------------
 	# {{ CONTAINERIZATION
 
 	echo -e "    [${blue}>${reset}] containerization"
@@ -652,7 +671,7 @@ development_setup() {
 	# > create the docker group.
 	# sudo groupadd docker
 	# > add your user to the docker group.
-	sudo usermod -aG docker $USER
+	# sudo usermod -aG docker $USER
 	# >  activate the changes to groups
 	# newgrp docker 
 
