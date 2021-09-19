@@ -91,6 +91,15 @@ update_and_upgrade() {
 }
 
 # }}
+# {{ install essentials
+
+install_essentials() {
+	echo -e "[${blue}>${reset}] install essentials"
+
+	sudo apt -y -qq install net-tools git curl wget &> /dev/null
+}
+
+# }}
 # {{ fonts setup
 
 fonts_setup() {
@@ -203,7 +212,7 @@ terminal_setup() {
 	fi
 
 	# ohmyzsh
-	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" &> /dev/null
+	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended &> /dev/null
 	# zsh-autosuggestions
 	git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 	# zsh-syntax-highlighting
@@ -322,13 +331,9 @@ desktop_setup() {
 
 			gsettings set org.gnome.shell.extensions.dash-to-dock scroll-action cycle-windows
 
-			# gsettings set org.gnome.shell.extensions.desktop-icons show-trash false
-			# gsettings set org.gnome.shell.extensions.desktop-icons show-home false
-			# gsettings set org.gnome.shell.extensions.desktop-icons icon-size 'small'
-
-			gsettings set org.gnome.shell.extensions.ding show-trash false
-			gsettings set org.gnome.shell.extensions.ding show-home false
-			gsettings set org.gnome.shell.extensions.ding show-volumes false
+			gsettings set org.gnome.shell.extensions.desktop-icons show-trash false
+			gsettings set org.gnome.shell.extensions.desktop-icons show-home false
+			gsettings set org.gnome.shell.extensions.desktop-icons icon-size 'small'
 			# TOP BAR
 			gsettings set org.gnome.desktop.interface clock-show-weekday true
 			gsettings set org.gnome.desktop.interface clock-show-seconds true
@@ -396,10 +401,12 @@ virtualization_setup() {
 			[ ! -x "$(command -v virtualbox)" ] && {
 				sudo apt -y -qq install virtualbox &> /dev/null
 			}
+
+			sudo adduser ${USER} vboxusers &> /dev/null
 			
 			# --- install virtualbox extension pack
-			export DEBIAN_FRONTEND=noninteractive
-			sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
+			#export DEBIAN_FRONTEND=noninteractive
+			#sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
 		fi
 
 		if [ ${VB_VM} == True ]
@@ -658,9 +665,9 @@ development_setup() {
 			gnupg \
 			lsb-release &> /dev/null
 
-		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+		curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-		sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable' > /etc/apt/sources.list.d/docker.list"
+		sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable' > /etc/apt/sources.list.d/docker.list"
 
 		sudo apt update &> /dev/null
 		#--- install docker engine
@@ -669,9 +676,9 @@ development_setup() {
 
 	# > Manage Docker as a non-root user
 	# > create the docker group.
-	# sudo groupadd docker
+	sudo groupadd docker &> /dev/null
 	# > add your user to the docker group.
-	# sudo usermod -aG docker $USER
+	sudo usermod -aG docker $USER &> /dev/null
 	# >  activate the changes to groups
 	# newgrp docker 
 
@@ -717,12 +724,6 @@ development_setup() {
 clean_up() {
 	echo -e "[${blue}>${reset}] clean up"
 
-	# Purge the default software
-	# sudo apt-get remove --purge libreoffice*
-	# sudo apt-get remove --purge thunderbird* 
-	# sudo apt-get remove --purge rhythmbox* 
-	# sudo apt-get remove --purge aisleriot gnome-mahjongg gnome-mines gnome-sudoku 
-
 	printf "    [${blue}+${reset}] auto(remove|clean)"
 	printf "\r"
 
@@ -748,6 +749,7 @@ do
 			display_banner
 
 			update_and_upgrade
+			install_essentials
 			fonts_setup
 			terminal_setup
 			desktop_setup
