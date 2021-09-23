@@ -10,6 +10,9 @@
         -> https://askubuntu.com/questions/1175987/how-to-change-the-background-to-use-built-in-theme-from-gnome-terminal-profile-p
         -> https://unix.stackexchange.com/questions/176175/changing-the-preferences-of-gnome-terminal-from-within-the-terminal
 
+[How to remove/install a package that is not fully installed?]
+    -> https://askubuntu.com/questions/438345/how-to-remove-install-a-package-that-is-not-fully-installed
+
 [tips]
 -> https://www.offensive-security.com/kali-linux/top-10-post-install-tips/
 
