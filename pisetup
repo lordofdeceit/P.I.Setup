@@ -44,7 +44,7 @@ git_clone() {
 	fi
 }
 
-# {{ DISPLAY BANNER
+# {{ > DISPLAY BANNER
 
 display_banner() {
 echo -e ${bold}${blue}"
@@ -57,8 +57,8 @@ echo -e ${bold}${blue}"
 "${reset}
 }
 
-# }}
-# {{ DISPLAY USAGE
+# < }}
+# {{ > DISPLAY USAGE
 
 display_usage() {
 	display_banner
@@ -75,10 +75,8 @@ display_usage() {
 EOF
 }
 
-# }}
-# {{ FUNCTIONS
-
-# {{ update & upgrade
+# < }}
+# {{ > update & upgrade
 
 update_and_upgrade() {
 	echo -e "[${blue}>${reset}] up(date|grade)"
@@ -90,8 +88,8 @@ update_and_upgrade() {
 			|| echo -e "    [${red}-${reset}] failed!"
 }
 
-# }}
-# {{ install essentials
+# < }}
+# {{ > install essentials
 
 install_essentials() {
 	echo -e "[${blue}>${reset}] install essentials"
@@ -99,19 +97,19 @@ install_essentials() {
 	sudo apt -y -qq install net-tools git curl wget &> /dev/null
 }
 
-# }}
-# {{ fonts setup
+# < }}
+# {{ > fonts setup
 
 fonts_setup() {
 	echo -e "[${blue}>${reset}] fonts"
 
 	local fonts_dir=${HOME}/.local/share/fonts; [ ! -e "${fonts_dir}" ] && mkdir -p ${fonts_dir}
 
-	# {{ NORMAL FONTS
+	# {{ >> NORMAL FONTS
 
 	echo -e "    [${blue}>${reset}] normal fonts"
 
-	# {{ Victor Mono
+	# {{ >>> Victor Mono
 
 	printf "        [${blue}+${reset}] Victor Mono"
 	printf "\r"
@@ -142,14 +140,14 @@ fonts_setup() {
 	fi
 	echo -e "        [${green}*${reset}] Victor Mono"
 
-	# }}
+	# <<< }}
 
-	# }}
-	# {{ PATCHED FONTS [NERD FONT](https://www.nerdfonts.com/)
+	# << }}
+	# {{ >> PATCHED FONTS [NERD FONT](https://www.nerdfonts.com/)
 
 	echo -e "    [${blue}>${reset}] patched fonts"
 
-	# {{ Victor Mono Nerd Font
+	# {{ >>> Victor Mono Nerd Font
 
 	printf "        [${blue}+${reset}] Victor Mono Nerd Font"
 	printf "\r"
@@ -181,22 +179,22 @@ fonts_setup() {
 	fi
 	echo -e "        [${green}*${reset}] Victor Mono Nerd Font"
 
-	# }}
+	# <<< }}
 
-	# }}
+	# << }}
 }
 
-# }}
-# {{
+# < }}
+# {{ > terminal setup
 
 terminal_setup() {
 	echo -e "[${blue}>${reset}] terminal"
 
-	# {{ SHELL (ZSH)
+	# {{ >> SHELL (ZSH)
 
 	echo -e "    [${blue}>${reset}] shell"
 
-	# {{ ZSH
+	# {{ >>> ZSH
 
 	printf "        [${blue}+${reset}] ZSH"
 	printf "\r"
@@ -223,14 +221,14 @@ terminal_setup() {
 
 	echo -e "        [${green}*${reset}] ZSH"
 
-	# }}
+	# <<< }}
 
-	# }}
-	# {{ MULTIPLEXER
+	# << }}
+	# {{ >> MULTIPLEXER
 
 	echo -e "    [${blue}>${reset}] multiplexer"
 
-	# {{ TMUX
+	# {{ >>> TMUX
 
 	printf "        [${blue}+${reset}] TMUX"
 	printf "\r"
@@ -250,16 +248,16 @@ terminal_setup() {
 
 	echo -e "        [${green}*${reset}] TMUX"
 
-	# }}
+	# <<< }}
 
-	# }}
-	# {{ EMULATOR (GNOME Terminal)
+	# << }}
+	# {{ >> EMULATOR (GNOME Terminal)
 
 	if [ ${GUI} == True ]
 	then
 		echo -e "    [${blue}>${reset}] emulator"
 
-		## {{ GNOME Terminal
+		## {{ >>> GNOME Terminal
 
 		if [ ${DE} == "gnome" ]
 		then
@@ -284,24 +282,22 @@ terminal_setup() {
 			echo -e "        [${green}*${reset}] GNOME Terminal"
 		fi
 
-		# }}
+		# <<< }}
 
 	fi
 
-	# }}
+	# << }}
 }
 
-# }}
-# {{
+# < }}
+# {{ > desktop setup
 
 desktop_setup() {
-	# {{ ENVIRONMENT
-
 	if [ ${GUI} == True ]
 	then
 		echo -e "[${blue}>${reset}] desktop"
 
-		# # {{ GNOME
+		# {{ >> GNOME
 
 		if [ ${DE} == "gnome" ]
 		then
@@ -353,12 +349,12 @@ desktop_setup() {
 			echo -e "    [${green}*${reset}] gnome"
 		fi
 
-		# }}
-		# {{ Browsers
+		# << }}
+		# {{ >> Browsers
 
 		echo -e "    [${blue}>${reset}] browser"
 
-		# {{ CHROME
+		# {{ >>> CHROME
 
 		printf "        [${blue}+${reset}] chrome"
 		printf "\r"
@@ -376,17 +372,15 @@ desktop_setup() {
 
 		echo -e "        [${green}*${reset}] chrome"
 
-		# }}
+		# <<< }}
 
-		# }}
+		# << }}
 
 	fi
-
-	# }}
 }
 
-# }}
-# {{ Virtualization Setup
+# < }}
+# {{ > Virtualization Setup
 
 virtualization_setup() {
 	echo -e "[${blue}>${reset}] virtualization"
@@ -418,7 +412,7 @@ virtualization_setup() {
 	}
 }
 
-# }}
+# < }}
 # {{ Development Setup
 
 development_setup() {
@@ -650,11 +644,11 @@ development_setup() {
 	# }}
 
 	# }}
-	# {{ CONTAINERIZATION
+	# {{ > CONTAINERIZATION
 
 	echo -e "    [${blue}>${reset}] containerization"
 
-	# {{ DOCKER
+	# {{ >> DOCKER
 
 	printf "        [${blue}+${reset}] docker engine"
 	printf "\r"
@@ -692,8 +686,8 @@ development_setup() {
 
 	echo -e "        [${green}*${reset}] docker engine"
 
-	# }}
-	# {{ DOCKER COMPOSE
+	# << }}
+	# {{ >> DOCKER COMPOSE
 
 	printf "        [${blue}+${reset}] docker compose"
 	printf "\r"
@@ -705,8 +699,8 @@ development_setup() {
 
 	echo -e "        [${green}*${reset}] docker compose"
 
-	# }}
-	# {{ DOCKER MACHINE
+	# << }}
+	# {{ >> DOCKER MACHINE
 
 	printf "        [${blue}+${reset}] docker machine"
 	printf "\r"
@@ -718,16 +712,16 @@ development_setup() {
 
 	echo -e "        [${green}*${reset}] docker machine"
 
-	# }}
+	# << }}
 
-	# }}
+	# < }}
 
 	# }}
 
 }
 
 # }}
-# {{ clean up
+# {{ > clean up
 
 clean_up() {
 	echo -e "[${blue}>${reset}] clean up"
@@ -743,10 +737,8 @@ clean_up() {
 	echo -e "    [${green}*${reset}] auto(remove|clean)"
 }
 
-# }}
-
-# }}
-# {{ MAIN
+# < }}
+# {{ > MAIN FLOW
 
 while [[ "${#}" -gt 0 && ."${1}" == .-* ]]
 do
@@ -777,6 +769,6 @@ do
 	shift
 done
 
-# }}
+# < }}
 
 echo
