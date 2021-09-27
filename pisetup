@@ -413,18 +413,14 @@ virtualization_setup() {
 }
 
 # < }}
-# {{ Development Setup
+# {{ > version control
 
-development_setup() {
-	echo -e "[${blue}>${reset}] development"
+version_control_setup() {
+	echo -e "[${blue}>${reset}] version control"
 
-	# {{ VERSION CONTROL
+	# {{ >> git
 
-	echo -e "    [${blue}>${reset}] version control"
-
-	# {{ VERSION CONTROL: GIT
-
-	printf "        [${blue}+${reset}] git"
+	printf "    [${blue}+${reset}] git"
 	printf "\r"
 
 	[ ! -x "$(command -v git)" ] && {
@@ -442,19 +438,21 @@ development_setup() {
 		git config --global url."https://enenumxela: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@github.com/".insteadOf "https://github.com/"
 	}
 
-	echo -e "        [${green}*${reset}] git"
+	echo -e "    [${green}*${reset}] git"
 
-	# }}
+	# << }}
 
-	# }}
-	#---------------------------------------------------------------------------------
-	# {{ TEXT EDITOR
+}
 
-	echo -e "    [${blue}>${reset}] text editor|IDE"
+# < }}
+# {{ > text editors
+
+text_editors_setup() {
+	echo -e "[${blue}>${reset}] text editors|IDE"
 
 	# {{ TEXT EDITOR: VIM
 
-	printf "        [${blue}+${reset}] VIM"
+	printf "    [${blue}+${reset}] VIM"
 	printf "\r"
 
 	[ ! -x "$(command -v vim)" ] && {
@@ -503,14 +501,14 @@ development_setup() {
 
 	cp -f ${script_dir}/dotfiles/.vimrc ${HOME}/.vim/vimrc
 
-	echo -e "        [${green}*${reset}] VIM"
+	echo -e "    [${green}*${reset}] VIM"
 
 	# }}
 	# {{ TEXT EDITOR: VISUAL STUDIO CODE
 
 	if [ ${GUI} == True ]
 	then
-		printf "        [${blue}+${reset}] visual studio code"
+		printf "    [${blue}+${reset}] visual studio code"
 		printf "\r"
 
 		[ ! -x "$(command -v code)" ] && {
@@ -559,51 +557,49 @@ development_setup() {
 
 		cp -f ${script_dir}/dotfiles/vscode/settings.json ${HOME}/.config/Code/User/settings.json
 
-		echo -e "        [${green}*${reset}] visual studio code"
+		echo -e "    [${green}*${reset}] visual studio code"
 
 	fi
 
 	# }}
 
-	# }}
-	#---------------------------------------------------------------------------------
-	# {{ LANGUAGES
+}
 
-	echo -e "    [${blue}>${reset}] language|frameworks|runtime"
+# < }}
+# {{ language Setup
+
+language_setup() {
+	echo -e "[${blue}>${reset}] language|frameworks|runtim"
 
 	# {{ LANGUAGES: GOLANG
 
-	printf "        [${blue}+${reset}] golang"
+	printf "    [${blue}+${reset}] golang"
 	printf "\r"
 
 	[ ! -x "$(command -v go)" ] && {
-		local version=1.17.1
+		local GO_VERSION=1.17.1
 
-		wget https://golang.org/dl/go${version}.linux-amd64.tar.gz -O /tmp/go${version}.linux-amd64.tar.gz &> /dev/null
+		wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz -O /tmp/go${GO_VERSION}.linux-amd64.tar.gz &> /dev/null
 
-		sudo tar -xzf /tmp/go${version}.linux-amd64.tar.gz -C /usr/local
-
-		(grep -q "export PATH=\$PATH:/usr/local/go/bin" ~/.profile) || {
-			# export PATH=$PATH:/usr/local/go/bin
-			echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.profile
-			# source ~/.profile
-		}
-		
-		(grep -q "export PATH=\$PATH:${HOME}/go/bin" ~/.profile) || {
-			# export PATH=$PATH:${HOME}/go/bin
-			echo "export PATH=\$PATH:${HOME}/go/bin" >> ~/.profile
-			# source ~/.profile
-		}
-
-		source ~/.profile
+		sudo tar -xzf /tmp/go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
 	}
 
-	echo -e "        [${green}*${reset}] golang"
+	(grep -q "export PATH=\$PATH:/usr/local/go/bin" ~/.profile) || {
+		echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.profile
+	}
+	
+	(grep -q "export PATH=\$PATH:${HOME}/go/bin" ~/.profile) || {
+		echo "export PATH=\$PATH:${HOME}/go/bin" >> ~/.profile
+	}
+
+	source ~/.profile
+
+	echo -e "    [${green}*${reset}] golang"
 
 	# }}
 	# {{ LANGUAGES: NODEJS
 
-	printf "        [${blue}+${reset}] node (nvm)"
+	printf "    [${blue}+${reset}] node (nvm)"
 	printf "\r"
 
 	[ ! -x "$(command -v nvm)" ] && {
@@ -619,38 +615,41 @@ development_setup() {
 		nvm install node &> /dev/null
 	}
 
-	echo -e "        [${green}*${reset}] node (nvm)"
+	echo -e "    [${green}*${reset}] node (nvm)"
 
 	# }}
 	# {{ LANGUAGES: PYTHON3
 
-	printf "        [${blue}+${reset}] python3"
+	printf "    [${blue}+${reset}] python3"
 	printf "\r"
 
 	[ ! -x "$(command -v python3)" ] || [ ! -x "$(command -v pip3)" ] && {
 		sudo apt -y -qq install python3 python3-pip &> /dev/null
 	}
 
-	echo -e "        [${green}*${reset}] python3"
+	echo -e "    [${green}*${reset}] python3"
 
 	# }}
 	# {{ LANGUAGES: LATEX
 
-	printf "        [${blue}+${reset}] latex"
+	printf "    [${blue}+${reset}] latex"
 	printf "\r"
 	sudo apt -y -qq install texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
-	echo -e "        [${green}*${reset}] latex"
+	echo -e "    [${green}*${reset}] latex"
 
 	# }}
 
-	# }}
-	# {{ > CONTAINERIZATION
+}
 
-	echo -e "    [${blue}>${reset}] containerization"
+# }}
+# {{ > containerization
+
+containerization_setup() {
+	echo -e "[${blue}>${reset}] containerization"
 
 	# {{ >> DOCKER
 
-	printf "        [${blue}+${reset}] docker engine"
+	printf "    [${blue}+${reset}] docker engine"
 	printf "\r"
 
 	#--- uninstall older versions of docker
@@ -684,12 +683,12 @@ development_setup() {
 	# >  activate the changes to groups
 	# newgrp docker 
 
-	echo -e "        [${green}*${reset}] docker engine"
+	echo -e "    [${green}*${reset}] docker engine"
 
 	# << }}
 	# {{ >> DOCKER COMPOSE
 
-	printf "        [${blue}+${reset}] docker compose"
+	printf "    [${blue}+${reset}] docker compose"
 	printf "\r"
 	
 	[ ! -x "$(command -v docker-compose)" ] && {
@@ -697,12 +696,12 @@ development_setup() {
 		sudo chmod +x /usr/local/bin/docker-compose
 	}
 
-	echo -e "        [${green}*${reset}] docker compose"
+	echo -e "    [${green}*${reset}] docker compose"
 
 	# << }}
 	# {{ >> DOCKER MACHINE
 
-	printf "        [${blue}+${reset}] docker machine"
+	printf "    [${blue}+${reset}] docker machine"
 	printf "\r"
 
 	[ ! -x "$(command -v docker-machine)" ] && {
@@ -710,17 +709,13 @@ development_setup() {
 		sudo chmod +x /usr/local/bin/docker-machine
 	}
 
-	echo -e "        [${green}*${reset}] docker machine"
+	echo -e "    [${green}*${reset}] docker machine"
 
 	# << }}
 
-	# < }}
-
-	# }}
-
 }
 
-# }}
+# < }}
 # {{ > clean up
 
 clean_up() {
@@ -754,7 +749,10 @@ do
 			terminal_setup
 			desktop_setup
 			virtualization_setup
-			development_setup
+			version_control_setup
+			text_editors_setup
+			language_setup
+			containerization_setup
 			clean_up
 		;;
 		-h | --help)
