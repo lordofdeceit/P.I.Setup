@@ -216,6 +216,10 @@ terminal_setup() {
 	# zsh-syntax-highlighting
 	git_clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
 
+	(grep -q "export PATH=\$PATH:${HOME}/.local/bin" ~/.profile) || {
+		echo "export PATH=\$PATH:${HOME}/.local/bin" >> ~/.profile
+	}
+
 	cp -f ${script_dir}/dotfiles/.zshrc ${HOME}/.zshrc
 	cp -f ${script_dir}/dotfiles/.zprofile ${HOME}/.zprofile
 
