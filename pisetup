@@ -84,7 +84,7 @@ update_and_upgrade() {
 	export DEBIAN_FRONTEND=noninteractive
 
 	sudo apt -qq update &> /dev/null \
-		&& sudo APT_LISTCHANGES_FRONTEND=none apt -o Dpkg::Options::="--force-confnew" -y dist-upgrade --fix-missing &> /dev/null \
+		&& sudo APT_LISTCHANGES_FRONTEND=none apt -o Dpkg::Options::="--force-confnew" -y -qq dist-upgrade --fix-missing &> /dev/null \
 			|| echo -e "    [${red}-${reset}] failed!"
 }
 
@@ -94,7 +94,7 @@ update_and_upgrade() {
 install_essentials() {
 	echo -e "[${blue}>${reset}] install essentials"
 
-	sudo apt -y -qq install net-tools git curl wget &> /dev/null
+	sudo apt -y -qq install net-tools git curl wget jq tree &> /dev/null
 }
 
 # < }}
