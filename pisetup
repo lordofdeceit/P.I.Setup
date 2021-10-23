@@ -240,7 +240,7 @@ then
 		printf "        [${blue}+${reset}] GNOME Terminal"
 		printf "\r"
 
-		local GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
+		GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
 
 		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ visible-name "Alex Munene's ..."
 
@@ -329,7 +329,7 @@ then
 	[ ! -x "$(command -v google-chrome)" ] && {
 		sudo apt -qq update &> /dev/null
 
-		local deb_file="/tmp/google-chrome-stable_current_amd64.deb"
+		deb_file="/tmp/google-chrome-stable_current_amd64.deb"
 		[ ! -f ${deb_file} ] && {
 			wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O ${deb_file} &> /dev/null
 		}
@@ -407,7 +407,7 @@ printf "\r"
 	sudo apt -y -qq install vim &> /dev/null
 }
 
-local directory="${HOME}/.vim"
+directory="${HOME}/.vim"
 [ ! -d ${directory}/colors ] && mkdir -p ${directory}/colors
 [ ! -d ${directory}/bundle ] && mkdir -p ${directory}/bundle
 [ ! -d ${directory}/autoload ] && mkdir -p ${directory}/autoload
@@ -518,7 +518,7 @@ printf "    [${blue}+${reset}] golang"
 printf "\r"
 
 [ ! -x "$(command -v go)" ] && {
-	local GO_VERSION=1.17.1
+	GO_VERSION=1.17.1
 
 	wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz -O /tmp/go${GO_VERSION}.linux-amd64.tar.gz &> /dev/null
 
