@@ -59,10 +59,10 @@ URL="https://raw.githubusercontent.com/enenumxela/pisetup/main/dotfiles"
 
 DOWNLOAD_CMD=
 
-if [ ! -x "$(command -v curl)" ]
+if [ -x "$(command -v curl)" ]
 then
 	DOWNLOAD_CMD="curl --silent"
-elif [ ! -x "$(command -v curl)" ]
+elif [ -x "$(command -v curl)" ]
 then
 	DOWNLOAD_CMD="wget --quiet --show-progres --continue --output-document=-"
 else
