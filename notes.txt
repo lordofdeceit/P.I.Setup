@@ -18,10 +18,10 @@
 
 -> https://github.com/mswell/dotfiles
 -> https://github.com/nahamsec/bbht
+-> https://gitlab.com/g0tmi1k/dot-files
 -> https://github.com/g0tmi1k/os-scripts
 -> https://github.com/harsh-bothra/VPS-Install
 -> https://github.com/ThothLogos/kali-prefs-setup
--> https://github.com/chvancooten/BugBountyScanner
 -> -> https://github.com/BrunoMartinsCorrea/dev-utils
 -> https://gist.github.com/LuD1161/66f30da6d8b6c1c05b9f6708525ea885
 

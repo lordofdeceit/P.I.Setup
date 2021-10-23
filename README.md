@@ -2,29 +2,24 @@
 
 `pisetup` is a post installation setup script.
 
-## Installation
-
-```bash
-git clone https://github.com/enenumxela/pisetup.git
-```
-
 ## Usage
 
+Export:
+
 ```bash
-pisetup -h
+export GITHUB_TOKEN=""
 ```
 
-```text
-       _          _               
- _ __ (_)___  ___| |_ _   _ _ __  
-| '_ \| / __|/ _ \ __| | | | '_ \ 
-| |_) | \__ \  __/ |_| |_| | |_) |
-| .__/|_|___/\___|\__|\__,_| .__/ 
-|_| Post Install Setup     |_| v1.0.0
+Run the script:
 
-USAGE:
-  pisetup [OPTIONS]
+* with curl:
 
-OPTIONS:
+	```bash
+	curl https://raw.githubusercontent.com/enenumxela/pisetup/main/pisetup | bash
+	```
 
-```
+* with wget:
+
+	```bash
+	wget -O - https://raw.githubusercontent.com/enenumxela/pisetup/main/pisetup | bash
+	```
