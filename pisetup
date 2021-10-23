@@ -57,16 +57,18 @@ git_clone() {
 ## URL
 URL="https://raw.githubusercontent.com/enenumxela/pisetup/main/dotfiles"
 
-## What command to use to pull down
-if command -v >&- wget; then
-	cmd="wget --quiet --show-progres --continue --output-document=-"  #--no-verbose
-elif command -v >&- curl; then
-	cmd="curl --silent"
+DOWNLOAD_CMD=
+
+if [ ! -x "$(command -v curl)" ]
+then
+	DOWNLOAD_CMD="curl --silent"
+elif [ ! -x "$(command -v curl)" ]
+then
+	DOWNLOAD_CMD="wget --quiet --show-progres --continue --output-document=-"
 else
 	echo "[-] Could not find wget/cURL" >&2
 	exit 1
 fi
-
 
 # --- DISPLAY BANNER ------------------------------------------------------------------
 
@@ -207,9 +209,8 @@ git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh
 # zsh-syntax-highlighting
 git_clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
 
-
-eval ${cmd} ${URL}/.zshrc > ${HOME}/.zshrc
-eval ${cmd} ${URL}/.zprofile > ${HOME}/.zprofile
+eval ${DOWNLOAD_CMD} ${URL}/.zshrc > ${HOME}/.zshrc
+eval ${DOWNLOAD_CMD} ${URL}/.zprofile > ${HOME}/.zprofile
 
 echo -e "        [${green}*${reset}] ZSH"
 
@@ -227,7 +228,7 @@ then
 	sudo apt -y -qq install tmux &> /dev/null
 fi
 
-eval ${cmd} ${URL}/.tmux.conf > ${HOME}/.tmux.conf
+eval ${DOWNLOAD_CMD} ${URL}/.tmux.conf > ${HOME}/.tmux.conf
 
 directory="${HOME}/.tmux/plugins"; [ ! -d ${directory} ] && mkdir -p ${directory}
 
@@ -457,7 +458,7 @@ git_clone "https://github.com/airblade/vim-gitgutter.git" "${directory}/bundle/v
 git_clone "https://github.com/Xuyuanp/nerdtree-git-plugin.git" "${directory}/bundle/nerdtree-git-plugin"
 git_clone "https://github.com/tpope/vim-fugitive.git" "${directory}/bundle/vim-fugitive"
 
-eval ${cmd} ${URL}/.vimrc > ${HOME}/.vim/vimrc
+eval ${DOWNLOAD_CMD} ${URL}/.vimrc > ${HOME}/.vim/vimrc
 
 echo -e "    [${green}*${reset}] VIM"
 
@@ -512,7 +513,7 @@ then
 		done
 	fi
 
-	eval ${cmd} ${URL}/vscode/settings.json > ${HOME}/.config/Code/User/settings.json
+	eval ${DOWNLOAD_CMD} ${URL}/vscode/settings.json > ${HOME}/.config/Code/User/settings.json
 
 	echo -e "    [${green}*${reset}] visual studio code"
 
