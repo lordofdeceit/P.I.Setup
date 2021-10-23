@@ -59,12 +59,10 @@ URL="https://raw.githubusercontent.com/enenumxela/pisetup/main/dotfiles"
 
 DOWNLOAD_CMD=
 
-if [ -x "$(command -v curl)" ]
-then
+if command -v >&- curl; then
 	DOWNLOAD_CMD="curl --silent"
-elif [ -x "$(command -v curl)" ]
-then
-	DOWNLOAD_CMD="wget --quiet --show-progres --continue --output-document=-"
+elif command -v >&- wget; then
+	DOWNLOAD_CMD="wget --quiet --show-progres --continue --output-document=-"  #--no-verbose
 else
 	echo "[-] Could not find wget/cURL" >&2
 	exit 1
