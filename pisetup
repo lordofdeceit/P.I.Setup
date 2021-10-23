@@ -1,14 +1,5 @@
 #!/usr/bin/env bash
 
-# Quit on error
-set -o errexit # set -e
-
-# Don't use undefined variables
-set -o nounset # set -u
-
-# Quit at any point of the chain
-set -o pipefail
-
 # --- VARIABLES -------------------------------------------------------------------------
 # colors
 red="\033[01;31m"    # Issues/Errors
