@@ -1,6 +1,6 @@
-# pisetup
+# setup
 
-`pisetup` is a post installation setup script.
+A post installation setup script.
 
 ## Usage
 
@@ -15,11 +15,11 @@ Run the script:
 * with curl:
 
 	```bash
-	curl https://raw.githubusercontent.com/enenumxela/pisetup/main/pisetup | bash
+	curl https://raw.githubusercontent.com/enenumxela/pisetup/main/setup | bash
 	```
 
 * with wget:
 
 	```bash
-	wget -O - https://raw.githubusercontent.com/enenumxela/pisetup/main/pisetup | bash
+	wget -O - https://raw.githubusercontent.com/enenumxela/pisetup/main/setup | bash
 	```

@@ -1,40 +1,46 @@
 #!/usr/bin/env bash
 
-# --- VARIABLES -------------------------------------------------------------------------
+export DEBIAN_FRONTEND=noninteractive
+
+# <---> VARIABLES <--------------------------------------------------------------------->
 # colors
 red="\033[01;31m"    # Issues/Errors
 blue="\033[01;34m"   # Heading
 green="\033[01;32m"  # Success
 yellow="\033[01;33m" # Warnings/Information
+
 # formatting
 bold="\033[01;01m"   # Highlight
+
 # reset colors & formatting
 reset="\033[00m"     # Normal
+
 # script file name (without extension)
 script_name=${0##*/}
-# script_dir="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
-GUI=False
-DE=
+# has GUI
+HAS_GUI=False; type Xorg > /dev/null 2>&1 && HAS_GUI=True
 
-VM=False
-VB_VM=False
+# desktop environment
+DESKTOP_ENVIRONMENT=
 
-type Xorg > /dev/null 2>&1 && GUI=True
-
-if [ ${GUI} == True ]
+if [ ${HAS_GUI} == True ]
 then
 	if [ "$XDG_CURRENT_DESKTOP" = "" ]
 	then
-		DE=$(echo "$XDG_DATA_DIRS" | sed 's/.*\(xfce\|kde\|gnome\).*/\1/')
+		DESKTOP_ENVIRONMENT=$(echo "$XDG_DATA_DIRS" | sed 's/.*\(xfce\|kde\|gnome\).*/\1/')
 	else
-		DE=$(echo "$XDG_CURRENT_DESKTOP" | grep -Eoi 'xfce|kde|gnome|mate|cinnamon|lxde|jwm')
+		DESKTOP_ENVIRONMENT=$(echo "$XDG_CURRENT_DESKTOP" | grep -Eoi 'xfce|kde|gnome|mate|cinnamon|lxde|jwm')
 	fi
 
-	DE=${DE,,}  # convert to lower case
+	DESKTOP_ENVIRONMENT=${DESKTOP_ENVIRONMENT,,}  # convert to lower case
 fi
 
-(sudo dmidecode | grep -iq virtualbox) && VM=True && VB_VM=True
+# desktop environment
+IS_A_VM=False
+IS_VM_VB=False
+
+(sudo dmidecode | grep -iq virtualbox) && IS_A_VM=True && IS_VM_VB=True
 
 git_clone() {
 	if [ -d ${2} ]
@@ -45,36 +51,40 @@ git_clone() {
 	fi
 }
 
-## URL
-URL="https://raw.githubusercontent.com/enenumxela/pisetup/main/dotfiles"
+## dotfiles URL
+DOTFILES_URL="https://raw.githubusercontent.com/enenumxela/setup/main/dotfiles"
 
 DOWNLOAD_CMD=
 
-if command -v >&- curl; then
+if command -v >&- curl
+then
 	DOWNLOAD_CMD="curl --silent"
-elif command -v >&- wget; then
-	DOWNLOAD_CMD="wget --quiet --show-progres --continue --output-document=-"  #--no-verbose
+elif command -v >&- wget
+then
+	DOWNLOAD_CMD="wget --quiet --show-progres --continue --output-document=-"
 else
 	echo "[-] Could not find wget/cURL" >&2
 	exit 1
 fi
 
-# --- DISPLAY BANNER ------------------------------------------------------------------
+# <---> START <------------------------------------------------------------------------->
+
+# <---> DISPLAY BANNER <---------------------------------------------------------------->
 
 echo -e ${bold}${blue}"
-       _          _               
- _ __ (_)___  ___| |_ _   _ _ __  
-| '_ \| / __|/ _ \ __| | | | '_ \ 
-| |_) | \__ \  __/ |_| |_| | |_) |
-| .__/|_|___/\___|\__|\__,_| .__/ 
-|_| ${yellow}Post Install Setup${blue}     |_| ${red}v1.0.0
+          _               
+ ___  ___| |_ _   _ _ __  
+/ __|/ _ \ __| | | | '_ \ 
+\__ \  __/ |_| |_| | |_) |
+|___/\___|\__|\__,_| .__/ 
+                   |_|
+
+${yellow}A post installation setup script.${blue}
 "${reset}
 
-# --- UP(DATE|GRADE) --------------------------------------------------------------------
+# <---> UP(DATE|GRADE) <---------------------------------------------------------------->
 
 echo -e "[${blue}>${reset}] up(date|grade)"
-
-export DEBIAN_FRONTEND=noninteractive
 
 sudo apt -qq update &> /dev/null \
 	&& sudo APT_LISTCHANGES_FRONTEND=none apt -o Dpkg::Options::="--force-confnew" -y -qq dist-upgrade --fix-missing &> /dev/null \
@@ -198,8 +208,8 @@ git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh
 # zsh-syntax-highlighting
 git_clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
 
-eval ${DOWNLOAD_CMD} ${URL}/.zshrc > ${HOME}/.zshrc
-eval ${DOWNLOAD_CMD} ${URL}/.zprofile > ${HOME}/.zprofile
+eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.zshrc > ${HOME}/.zshrc
+eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.zprofile > ${HOME}/.zprofile
 
 echo -e "        [${green}*${reset}] ZSH"
 
@@ -217,7 +227,7 @@ then
 	sudo apt -y -qq install tmux &> /dev/null
 fi
 
-eval ${DOWNLOAD_CMD} ${URL}/.tmux.conf > ${HOME}/.tmux.conf
+eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.tmux.conf > ${HOME}/.tmux.conf
 
 directory="${HOME}/.tmux/plugins"; [ ! -d ${directory} ] && mkdir -p ${directory}
 
@@ -229,13 +239,13 @@ echo -e "        [${green}*${reset}] TMUX"
 
 ## EMULATOR
 
-if [ ${GUI} == True ]
+if [ ${HAS_GUI} == True ]
 then
 	echo -e "    [${blue}>${reset}] emulator"
 
 	### GNOME Terminal
 
-	if [ ${DE} == "gnome" ]
+	if [ ${DESKTOP_ENVIRONMENT} == "gnome" ]
 	then
 		printf "        [${blue}+${reset}] GNOME Terminal"
 		printf "\r"
@@ -261,13 +271,13 @@ fi
 
 # --- DESKTOP SETUP ---------------------------------------------------------------------
 
-if [ ${GUI} == True ]
+if [ ${HAS_GUI} == True ]
 then
 	echo -e "[${blue}>${reset}] desktop"
 
 	## GNOME
 
-	if [ ${DE} == "gnome" ]
+	if [ ${DESKTOP_ENVIRONMENT} == "gnome" ]
 	then
 		printf "    [${blue}+${reset}] GNOME"
 		printf "\r"
@@ -281,24 +291,17 @@ then
 		gsettings set org.gnome.shell.extensions.dash-to-dock extend-height false
 		gsettings set org.gnome.shell favorite-apps "['virtualbox.desktop','firefox.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop']"
 		gsettings set org.gnome.shell.extensions.dash-to-dock unity-backlit-items false
-
 		gsettings set org.gnome.desktop.interface show-battery-percentage true
-
-		
-
 		gsettings set org.gnome.shell.extensions.dash-to-dock show-windows-preview true
 		gsettings set org.gnome.shell.extensions.dash-to-dock show-favorites true
 		gsettings set org.gnome.shell.extensions.dash-to-dock show-trash true
 		gsettings set org.gnome.shell.extensions.dash-to-dock show-mounts true
-
 		gsettings set org.gnome.shell.extensions.dash-to-dock animation-time 0.2
-
 		gsettings set org.gnome.shell.extensions.dash-to-dock scroll-action cycle-windows
-
 		# gsettings set org.gnome.shell.extensions.desktop-icons show-trash false
 		# gsettings set org.gnome.shell.extensions.desktop-icons show-home false
 		# gsettings set org.gnome.shell.extensions.desktop-icons icon-size 'small'
-		# TOP BAR
+		# Top Bar
 		gsettings set org.gnome.desktop.interface clock-show-weekday true
 		gsettings set org.gnome.desktop.interface clock-show-seconds true
 		gsettings set org.gnome.desktop.interface clock-show-date true
@@ -309,7 +312,7 @@ then
 		gsettings set org.gnome.desktop.peripherals.touchpad click-method 'fingers'
 		gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click  true
 		gsettings set org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true
-		# WINDOWS TITLEBAR
+		# Windows Titlebar
 		gsettings set org.gnome.desktop.wm.preferences action-double-click-titlebar toggle-maximize
 		gsettings set org.gnome.desktop.wm.preferences action-middle-click-titlebar minimize
 		gsettings set org.gnome.desktop.wm.preferences action-right-click-titlebar menu
@@ -344,11 +347,11 @@ fi
 
 echo -e "[${blue}>${reset}] virtualization"
 
-[ ${GUI} == True ] && {
+[ ${HAS_GUI} == True ] && {
 	printf "    [${blue}+${reset}] virtualbox"
 	printf "\r"
 
-	if [ ${VM} == False ]
+	if [ ${IS_A_VM} == False ]
 	then
 		#--- install virtualbox
 		[ ! -x "$(command -v virtualbox)" ] && {
@@ -362,7 +365,7 @@ echo -e "[${blue}>${reset}] virtualization"
 		#sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
 	fi
 
-	if [ ${VB_VM} == True ]
+	if [ ${IS_VM_VB} == True ]
 	then
 		sudo apt -y -qq install virtualbox-guest-x11 &> /dev/null
 	fi
@@ -389,7 +392,10 @@ printf "\r"
 	# Your default branch name
 	git config --global init.defaultBranch main
 
-	git config --global url."https://enenumxela:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+	if [ ${GITHUB_TOKEN} != "" ]
+	then
+		git config --global url."https://enenumxela:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+	fi
 }
 
 echo -e "    [${green}*${reset}] git"
@@ -447,18 +453,19 @@ git_clone "https://github.com/airblade/vim-gitgutter.git" "${directory}/bundle/v
 git_clone "https://github.com/Xuyuanp/nerdtree-git-plugin.git" "${directory}/bundle/nerdtree-git-plugin"
 git_clone "https://github.com/tpope/vim-fugitive.git" "${directory}/bundle/vim-fugitive"
 
-eval ${DOWNLOAD_CMD} ${URL}/.vimrc > ${HOME}/.vim/vimrc
+eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.vimrc > ${HOME}/.vim/vimrc
 
 echo -e "    [${green}*${reset}] VIM"
 
 ## VISUAL STUDIO CODE
 
-if [ ${GUI} == True ]
+if [ ${HAS_GUI} == True ]
 then
 	printf "    [${blue}+${reset}] visual studio code"
 	printf "\r"
 
-	[ ! -x "$(command -v code)" ] && {
+	if [ ! -x "$(command -v code)" ]
+	then
 		curl -s https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
 
 		sudo install -o root -g root -m 644 /tmp/packages.microsoft.gpg /usr/share/keyrings/
@@ -468,7 +475,7 @@ then
 		}
 
 		sudo apt -y -qq update &> /dev/null && sudo apt -y -qq install code &> /dev/null
-	}
+	fi
 
 	vscode_extensions=(
 		golang.go
@@ -502,7 +509,7 @@ then
 		done
 	fi
 
-	eval ${DOWNLOAD_CMD} ${URL}/vscode/settings.json > ${HOME}/.config/Code/User/settings.json
+	eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/vscode/settings.json > ${HOME}/.config/Code/User/settings.json
 
 	echo -e "    [${green}*${reset}] visual studio code"
 
@@ -542,7 +549,8 @@ echo -e "    [${green}*${reset}] golang"
 printf "    [${blue}+${reset}] node (nvm)"
 printf "\r"
 
-[ ! -x "$(command -v nvm)" ] && {
+if [ ! -x "$(command -v nvm)" ]
+then
 	curl -sSL https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash - &> /dev/null
 	
 
@@ -553,7 +561,7 @@ printf "\r"
 	source ${HOME}/.bashrc
 
 	nvm install node &> /dev/null
-}
+fi
 
 echo -e "    [${green}*${reset}] node (nvm)"
 
@@ -575,7 +583,7 @@ printf "\r"
 sudo apt -y -qq install texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
 echo -e "    [${green}*${reset}] latex"
 
-# --- CONTAINERIZATION -----------------------------------------------------------------
+# <---> CONTAINERIZATION <-------------------------------------------------------------->
 
 echo -e "[${blue}>${reset}] containerization"
 
@@ -587,7 +595,8 @@ printf "\r"
 #--- uninstall older versions of docker
 sudo apt remove docker docker-engine docker.io containerd runc &> /dev/null
 
-[ ! -x "$(command -v docker)" ] && {
+if [ ! -x "$(command -v docker)" ]
+then
 	#--- setup repository
 	sudo apt update &> /dev/null
 
@@ -605,7 +614,7 @@ sudo apt remove docker docker-engine docker.io containerd runc &> /dev/null
 	sudo apt update &> /dev/null
 	#--- install docker engine
 	sudo apt -y -qq install docker-ce docker-ce-cli containerd.io &> /dev/null
-}
+fi
 
 # > Manage Docker as a non-root user
 # > create the docker group.
@@ -622,10 +631,11 @@ echo -e "    [${green}*${reset}] docker engine"
 printf "    [${blue}+${reset}] docker compose"
 printf "\r"
 
-[ ! -x "$(command -v docker-compose)" ] && {
+if [ ! -x "$(command -v docker-compose)" ]
+then
 	sudo curl -sL "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 	sudo chmod +x /usr/local/bin/docker-compose
-}
+fi
 
 echo -e "    [${green}*${reset}] docker compose"
 
@@ -634,14 +644,15 @@ echo -e "    [${green}*${reset}] docker compose"
 printf "    [${blue}+${reset}] docker machine"
 printf "\r"
 
-[ ! -x "$(command -v docker-machine)" ] && {
+if [ ! -x "$(command -v docker-machine)" ]
+then
 	sudo curl -sL "https://github.com/docker/machine/releases/download/v0.16.2/docker-machine-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-machine
 	sudo chmod +x /usr/local/bin/docker-machine
-}
+fi
 
 echo -e "    [${green}*${reset}] docker machine"
 
-# --- CLEANUP ---------------------------------------------------------------------------
+# <---> CLEANUP <----------------------------------------------------------------------->
 
 echo -e "[${blue}>${reset}] clean up"
 
@@ -654,5 +665,7 @@ do
 done
 
 echo -e "    [${green}*${reset}] auto(remove|clean)"
+
+# <---> END <--------------------------------------------------------------------------->
 
 echo
