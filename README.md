@@ -15,7 +15,7 @@ Then run the script:
 * with curl:
 
 	```bash
-	curl https://raw.githubusercontent.com/enenumxela/pisetup/main/setup | bash
+	curl -sL https://raw.githubusercontent.com/enenumxela/pisetup/main/setup | bash
 	```
 
 * with wget:

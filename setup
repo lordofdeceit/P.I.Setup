@@ -392,7 +392,7 @@ printf "\r"
 	# Your default branch name
 	git config --global init.defaultBranch main
 
-	if [ ${GITHUB_TOKEN} != "" ]
+	if [ "${GITHUB_TOKEN}" != "" ]
 	then
 		git config --global url."https://enenumxela:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 	fi
