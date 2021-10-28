@@ -10,7 +10,7 @@ Export:
 export GITHUB_TOKEN=""
 ```
 
-Run the script:
+Then run the script:
 
 * with curl:
 
