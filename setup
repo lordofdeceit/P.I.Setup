@@ -82,6 +82,10 @@ echo -e ${bold}${blue}"
 ${yellow}A post installation setup script.${blue}
 "${reset}
 
+# <---> CHECK INTERNET ACCESS <--------------------------------------------------------->
+
+# TODO
+
 # <---> UP(DATE|GRADE) <---------------------------------------------------------------->
 
 echo -e "[${blue}>${reset}] up(date|grade)"
@@ -324,7 +328,7 @@ then
 
 	echo -e "    [${blue}>${reset}] browser"
 
-	### CHROME
+	### chrome
 
 	printf "        [${blue}+${reset}] chrome"
 	printf "\r"
@@ -341,6 +345,39 @@ then
 	}
 
 	echo -e "        [${green}*${reset}] chrome"
+
+	### firefox
+
+	printf "        [${blue}+${reset}] firefox"
+	printf "\r"
+
+	FIREFOX_PATH="${HOME}/.mozilla/firefox"
+	FIREFOX_PROFILE_PATH="$(find ${FIREFOX_PATH}/*.default-esr/ -maxdepth 0 -mindepth 0 -type d -name '*.default*' -print -quit)"
+
+	#### Preferences
+
+	eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/firefox/user.js > ${FIREFOX_PROFILE_PATH}/user.js
+
+	#### Download extensions
+	FIREFOX_EXT_PATH="${FIREFOX_PROFILE_PATH}/extensions"
+
+	if [ ! -d ${FIREFOX_EXT_PATH} ]
+	then
+		mkdir -p "${FIREFOX_EXT_PATH}/"
+	fi
+
+	##### Privacy Badger
+	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/privacy-badger17/latest.xpi" -o "${FIREFOX_EXT_PATH}/jid1-MnnxcxisBPnSXQ@jetpack"
+	##### HTTPS Everywhere
+	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/https-everywhere/latest.xpi" -o "${FIREFOX_EXT_PATH}/https-everywhere@eff.org.xpi"
+	##### uBlock Origin
+	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi" -o "${FIREFOX_EXT_PATH}/uBlock0@raymondhill.net.xpi"
+	##### Cookie Auto Delete
+	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/cookie-autodelete/latest.xpi" -o "${FIREFOX_EXT_PATH}/CookieAutoDelete@kennydo.com.xpi"
+	##### Bitwarden
+	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi" -o "${FIREFOX_EXT_PATH}/{446900e4-71c2-419f-a6a7-df9c091e268b}.xpi"
+
+	echo -e "        [${green}*${reset}] firefox"
 fi
 
 # --- VIRTUALIZATION SETUP --------------------------------------------------------------
