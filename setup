@@ -98,7 +98,7 @@ sudo apt -qq update &> /dev/null \
 
 echo -e "[${blue}>${reset}] install essentials"
 
-sudo apt -y -qq install net-tools git curl wget jq tree &> /dev/null
+sudo apt -y -qq install net-tools git curl wget jq tree psmisc sqlite3 &> /dev/null
 
 # --- FONTS SETUP -----------------------------------------------------------------------
 
@@ -358,7 +358,28 @@ then
 
 	eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/firefox/user.js > ${FIREFOX_PROFILE_PATH}/user.js
 
-	#### Download extensions
+	#### Bookmarks
+	# FIREFOX_PLACES_SQLITE="${FIREFOX_PROFILE_PATH}/places.sqlite"
+
+	# PID=$(fuser ${FIREFOX_PLACES_SQLITE})
+
+	# if [ "${PID}" != "" ]
+	# then
+	# 	echo "${PID}"
+	# 	kill -9 ${PID}
+	# 	sleep 5s
+	# fi
+
+	# sqlite3 ${FIREFOX_PLACES_SQLITE} "SELECT moz_places.url, moz_bookmarks.title FROM moz_places, moz_bookmarks WHERE moz_bookmarks.fk = moz_places.id AND moz_bookmarks.type = 1 AND length(moz_bookmarks.title) > 0 ORDER BY moz_bookmarks.dateAdded"
+
+	# sqlite3 ${FIREFOX_PLACES_SQLITE} "INSERT INTO moz_bookmarks (type, parent, title, dateAdded) VALUES (1,5,'MyBookmark',CURRENT_TIMESTAMP)"
+
+	# sqlite3 ${FIREFOX_PLACES_SQLITE} "
+	# INSERT INTO moz_places (url) VALUES ('https://explainshell.com/'); 
+	# INSERT INTO moz_bookmarks (type, fk, parent, title, dateAdded) VALUES (1, (SELECT id FROM moz_places WHERE url='https://explainshell.com/'), 5, Eexplain Shell', CURRENT_TIMESTAMP);
+	# "
+
+	#### Extensions
 	FIREFOX_EXT_PATH="${FIREFOX_PROFILE_PATH}/extensions"
 
 	if [ ! -d ${FIREFOX_EXT_PATH} ]
@@ -519,6 +540,7 @@ then
 		eamodio.gitlens
 		ms-python.python
 		mhutchie.git-graph
+		redhat.vscode-yaml
 		dbaeumer.vscode-eslint
 		james-yu.latex-workshop
 		pkief.material-icon-theme
@@ -691,7 +713,7 @@ echo -e "    [${green}*${reset}] docker machine"
 
 # <---> CLEANUP <----------------------------------------------------------------------->
 
-echo -e "[${blue}>${reset}] clean up"
+echo -e "[${blue}>${reset}] system clean up"
 
 printf "    [${blue}+${reset}] auto(remove|clean)"
 printf "\r"
@@ -702,6 +724,13 @@ do
 done
 
 echo -e "    [${green}*${reset}] auto(remove|clean)"
+
+printf "    [${blue}+${reset}] shred history files"
+printf "\r"
+
+sudo find ${HOME} -type f -name ".*_history" -exec shred -u {} \; &> /dev/null
+
+echo -e "    [${green}*${reset}] shred history files"
 
 # <---> END <--------------------------------------------------------------------------->
 
