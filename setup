@@ -329,22 +329,25 @@ then
 	echo -e "    [${blue}>${reset}] browser"
 
 	### chrome
-
-	printf "        [${blue}+${reset}] chrome"
-	printf "\r"
 	
-	[ ! -x "$(command -v google-chrome)" ] && {
-		sudo apt -qq update &> /dev/null
+	if [ ${IS_A_VM} == False ]
+	then
+		printf "        [${blue}+${reset}] chrome"
+		printf "\r"
+		
+		[ ! -x "$(command -v google-chrome)" ] && {
+			sudo apt -qq update &> /dev/null
 
-		deb_file="/tmp/google-chrome-stable_current_amd64.deb"
-		[ ! -f ${deb_file} ] && {
-			wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O ${deb_file} &> /dev/null
+			deb_file="/tmp/google-chrome-stable_current_amd64.deb"
+			[ ! -f ${deb_file} ] && {
+				wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O ${deb_file} &> /dev/null
+			}
+
+			sudo apt -y -qq install ${deb_file} &> /dev/null
 		}
 
-		sudo apt -y -qq install ${deb_file} &> /dev/null
-	}
-
-	echo -e "        [${green}*${reset}] chrome"
+		echo -e "        [${green}*${reset}] chrome"
+	fi
 
 	### firefox
 
@@ -421,11 +424,11 @@ echo -e "[${blue}>${reset}] virtualization"
 		# --- install virtualbox extension pack
 		#export DEBIAN_FRONTEND=noninteractive
 		#sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
-	fi
-
-	if [ ${IS_VM_VB} == True ]
-	then
-		sudo apt -y -qq install virtualbox-guest-x11 &> /dev/null
+	else
+		if [ ${IS_VM_VB} == True ]
+		then
+			sudo apt -y -qq install virtualbox-guest-x11 &> /dev/null
+		fi
 	fi
 
 	echo -e "    [${green}*${reset}] virtualbox"
@@ -635,12 +638,15 @@ printf "\r"
 
 echo -e "    [${green}*${reset}] python3"
 
-##: LATEX
+## LATEX
 
-printf "    [${blue}+${reset}] latex"
-printf "\r"
-sudo apt -y -qq install texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
-echo -e "    [${green}*${reset}] latex"
+if [ ${IS_A_VM} == False ]
+then
+	printf "    [${blue}+${reset}] latex"
+	printf "\r"
+	sudo apt -y -qq install texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
+	echo -e "    [${green}*${reset}] latex"
+fi
 
 # <---> CONTAINERIZATION <-------------------------------------------------------------->
 
