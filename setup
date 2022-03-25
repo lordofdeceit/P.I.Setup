@@ -72,14 +72,12 @@ fi
 # <---> DISPLAY BANNER <---------------------------------------------------------------->
 
 echo -e ${bold}${blue}"
-          _               
- ___  ___| |_ _   _ _ __  
-/ __|/ _ \ __| | | | '_ \ 
-\__ \  __/ |_| |_| | |_) |
-|___/\___|\__|\__,_| .__/ 
-                   |_|
-
-${yellow}A post installation setup script.${blue}
+ _ ____  _       _     ____       _               
+(_)  _ \(_) ___ | |_  / ___|  ___| |_ _   _ _ __  
+| | | | | |/ _ \| __| \___ \ / _ \ __| | | | '_ \ 
+| | |_| | | (_) | |_   ___) |  __/ |_| |_| | |_) |
+|_|____/|_|\___/ \__| |____/ \___|\__|\__,_| .__/ 
+${yellow}A post installation setup script${blue}           |_|    
 "${reset}
 
 # <---> CHECK INTERNET ACCESS <--------------------------------------------------------->
@@ -218,22 +216,23 @@ then
 	fi
 
 	### HYPER
+	printf "        [${blue}+${reset}] Hyper Terminal"
+	printf "\r"
+
 	if [ ! -x "$(command -v hyper)" ]
 	then
-		printf "        [${blue}+${reset}] Hyper Terminal"
-		printf "\r"
-		# install
 		eval ${DOWNLOAD_CMD} https://releases.hyper.is/download/deb > /tmp/hyper_amd64.deb
 		sudo apt install -y -qq /tmp/hyper_amd64.deb &> /dev/null
-		# theme
-		hyper i hyper-one-dark  &> /dev/null
-		# ligatures
-		hyper i hyper-font-ligatures  &> /dev/null
-
-		eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.hyper.js > ${HOME}/.hyper.js
-
-		echo -e "        [${green}*${reset}] Hyper Terminal"
 	fi
+
+	# theme
+	hyper i hyper-one-dark  &> /dev/null
+	# ligatures
+	hyper i hyper-font-ligatures  &> /dev/null
+
+	eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.hyper.js > ${HOME}/.hyper.js
+
+	echo -e "        [${green}*${reset}] Hyper Terminal"
 fi
 
 ## SHELL
@@ -257,6 +256,8 @@ fi
 
 # ohmyzsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended &> /dev/null
+# theme
+git_clone "https://github.com/romkatv/powerlevel10k.git" "${HOME}/powerlevel10k"
 # zsh-autosuggestions
 git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 # zsh-syntax-highlighting
@@ -272,8 +273,6 @@ then
 fi
 
 cp $(dirname $(gem which colorls))/yaml/dark_colors.yaml ~/.config/colorls/dark_colors.yaml
-# theme
-git_clone "https://github.com/romkatv/powerlevel10k.git" "${HOME}/powerlevel10k"
 
 eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.zshrc > ${HOME}/.zshrc
 eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.zprofile > ${HOME}/.zprofile
