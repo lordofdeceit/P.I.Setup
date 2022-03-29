@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-export DEBIAN_FRONTEND=noninteractive
-
-# <---> VARIABLES <--------------------------------------------------------------------->
+# <---> VARIABLES <--->
 # colors
 red="\033[01;31m"    # Issues/Errors
 blue="\033[01;34m"   # Heading
@@ -10,7 +8,8 @@ green="\033[01;32m"  # Success
 yellow="\033[01;33m" # Warnings/Information
 
 # formatting
-bold="\033[01;01m"   # Highlight
+bold="\033[01;01m"   # Bold
+underline="\e[4m"    # Undeline
 
 # reset colors & formatting
 reset="\033[00m"     # Normal
@@ -18,8 +17,17 @@ reset="\033[00m"     # Normal
 # script file name (without extension)
 script_name=${0##*/}
 
-# has GUI
+#version
+VERSION="1.0.0"
+
+# has graphical user interface (GUI)
 HAS_GUI=False; type Xorg > /dev/null 2>&1 && HAS_GUI=True
+
+# virtualization
+IS_A_VM=False
+IS_A_VB_VM=False
+
+(sudo dmidecode | grep -iq virtualbox) && IS_A_VM=True && IS_A_VB_VM=True
 
 # desktop environment
 DESKTOP_ENVIRONMENT=
@@ -36,24 +44,7 @@ then
 	DESKTOP_ENVIRONMENT=${DESKTOP_ENVIRONMENT,,}  # convert to lower case
 fi
 
-# desktop environment
-IS_A_VM=False
-IS_VM_VB=False
-
-(sudo dmidecode | grep -iq virtualbox) && IS_A_VM=True && IS_VM_VB=True
-
-git_clone() {
-	if [ -d ${2} ]
-	then
-		git -C ${2} pull origin master &> /dev/null
-	else
-		git clone ${1} ${2} &> /dev/null
-	fi
-}
-
-## dotfiles URL
-DOTFILES_URL="https://raw.githubusercontent.com/enenumxela/setup/main/dotfiles"
-
+# download command
 DOWNLOAD_CMD=
 
 if command -v >&- curl
@@ -63,44 +54,88 @@ elif command -v >&- wget
 then
 	DOWNLOAD_CMD="wget --quiet --show-progres --continue --output-document=-"
 else
-	echo "[-] Could not find wget/cURL" >&2
+	echo "\n${blue}[${red}-${blue}]${reset} failed!...could not find wget/cURL!\n"
 	exit 1
 fi
 
-# <---> START <------------------------------------------------------------------------->
+#command prefix
+CMD_PREFIX=
 
-# <---> DISPLAY BANNER <---------------------------------------------------------------->
+if [ ${UID} -gt 0 ] && [ -x "$(command -v sudo)" ]
+then
+	CMD_PREFIX="sudo"
+elif [ ${UID} -gt 0 ] && [ ! -x "$(command -v sudo)" ]
+then
+	echo -e "\n${blue}[${red}-${blue}]${reset} failed!...\`sudo\` command not found!\n"
+	exit 1
+fi
+
+# dotfiles URL
+DOTFILES_URL="https://raw.githubusercontent.com/enenumxela/setup/main/dotfiles"
+
+# has internet access
+HAS_INTERNET_ACCESS=False
+
+# git clone
+git_clone() {
+	if [ -d ${2} ]
+	then
+		git -C ${2} pull origin master &> /dev/null
+	else
+		git clone ${1} ${2} &> /dev/null
+	fi
+}
+
+# <---> DISPLAY BANNER <--->
 
 echo -e ${bold}${blue}"
- _ ____  _       _     ____       _               
-(_)  _ \(_) ___ | |_  / ___|  ___| |_ _   _ _ __  
-| | | | | |/ _ \| __| \___ \ / _ \ __| | | | '_ \ 
-| | |_| | | (_) | |_   ___) |  __/ |_| |_| | |_) |
-|_|____/|_|\___/ \__| |____/ \___|\__|\__,_| .__/ 
-${yellow}A post installation setup script${blue}           |_|    
+             _                 _                
+  __ _ _   _| |_ ___  ___  ___| |_ _   _ _ __   
+ / _\` | | | | __/ _ \/ __|/ _ \ __| | | | '_ \ 
+| (_| | |_| | || (_) \__ \  __/ |_| |_| | |_) | 
+ \__,_|\__,_|\__\___/|___/\___|\__|\__,_| .__/  
+                                        |_|     
 "${reset}
 
-# <---> CHECK INTERNET ACCESS <--------------------------------------------------------->
+# <---> START <--->
 
-# TODO
+echo -e "[${blue}>${reset}] START"
 
-# <---> UP(DATE|GRADE) <---------------------------------------------------------------->
+export DEBIAN_FRONTEND=noninteractive
+
+# <---> CHECK INTERNET ACCESS <--->
+
+echo -e "[${blue}>${reset}] checking internet connection"
+
+for i in {1..10}
+do
+	ping -c 1 -W ${i} www.google.com &>/dev/null && break
+done
+
+if [[ $? -ne 0 ]]
+then
+	echo -e "    ${blue}[${red}-${blue}]${reset} failed!...no internet connection!\n"
+	exit 1
+fi
+
+# <---> UP(DATE|GRADE) <--->
 
 echo -e "[${blue}>${reset}] up(date|grade)"
 
-sudo apt -qq update &> /dev/null \
-	&& sudo APT_LISTCHANGES_FRONTEND=none apt -o Dpkg::Options::="--force-confnew" -y -qq dist-upgrade --fix-missing &> /dev/null \
+eval ${CMD_PREFIX} apt -qq update &> /dev/null \
+	&& eval ${CMD_PREFIX} APT_LISTCHANGES_FRONTEND=none apt -o Dpkg::Options::="--force-confnew" -y -qq dist-upgrade --fix-missing &> /dev/null \
 		|| echo -e "    [${red}-${reset}] failed!"
 
-# --- INSTALL ESSENTIALS ----------------------------------------------------------------
+
+# <---> INSTALL ESSENTIALS <--->
 
 echo -e "[${blue}>${reset}] install essentials"
 
-sudo apt -y -qq install net-tools git curl wget jq tree psmisc sqlite3 &> /dev/null
+eval ${CMD_PREFIX} apt install -y -qq git curl wget net-tools jq tree psmisc sqlite3 &> /dev/null
 
-# --- FONTS SETUP -----------------------------------------------------------------------
+# <---> DOWNLOAD FONTS <--->
 
-echo -e "[${blue}>${reset}] fonts"
+echo -e "[${blue}>${reset}] download fonts"
 
 fonts_directory=${HOME}/.local/share/fonts
 
@@ -117,6 +152,7 @@ echo -e "    [${blue}>${reset}] normal fonts"
 
 printf "        [${blue}+${reset}] Victor Mono"
 printf "\r"
+
 name="VictorMono"
 weights=(Light Regular Medium Bold)
 
@@ -136,12 +172,13 @@ if [ ${#missing_fonts[@]} -gt 0 ]
 then
 
 	[ ! -e /tmp/VictorMonoAll.zip ] && {
-			curl -sL https://rubjo.github.io/victor-mono/VictorMonoAll.zip -o /tmp/VictorMonoAll.zip;
+		eval ${DOWNLOAD_CMD} https://rubjo.github.io/victor-mono/VictorMonoAll.zip > /tmp/VictorMonoAll.zip;
 	}
 
 	unzip -qd /tmp/VictorMonoAll /tmp/VictorMonoAll.zip; cp -f /tmp/VictorMonoAll/TTF/* ${HOME}/.local/share/fonts/
 	echo
 fi
+
 echo -e "        [${green}*${reset}] Victor Mono"
 
 ## PATCHED FONTS [NERD FONT](https://www.nerdfonts.com/)
@@ -152,6 +189,7 @@ echo -e "    [${blue}>${reset}] patched fonts"
 
 printf "        [${blue}+${reset}] Victor Mono Nerd Font"
 printf "\r"
+
 name="VictorMono"
 weights=(Light Regular Medium Bold)
 
@@ -174,66 +212,16 @@ then
 		font="$name $weight Nerd Font Complete.ttf"
 
 		[ ! -e "${fonts_directory}/${font}" ] && {
-			curl -sL https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/${name}/${weight}/complete/Victor%20Mono%20${weight}%20Nerd%20Font%20Complete.ttf -o "${fonts_directory}/${font}";
+			eval ${DOWNLOAD_CMD} https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/${name}/${weight}/complete/Victor%20Mono%20${weight}%20Nerd%20Font%20Complete.ttf > "${fonts_directory}/${font}";
 		}
 	done
 fi
+
 echo -e "        [${green}*${reset}] Victor Mono Nerd Font"
 
-# --- TERMINAL SETUP --------------------------------------------------------------------
+# <---> TERMINAL SETUP <--->
 
 echo -e "[${blue}>${reset}] terminal"
-
-## EMULATOR
-
-if [ ${HAS_GUI} == True ]
-then
-	echo -e "    [${blue}>${reset}] emulator"
-
-	### GNOME Terminal
-
-	if [ ${DESKTOP_ENVIRONMENT} == "gnome" ]
-	then
-		printf "        [${blue}+${reset}] GNOME Terminal"
-		printf "\r"
-
-		GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
-
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ visible-name "Alex Munene's ..."
-
-		# Text Appearance
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-columns 80
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-rows 24
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ use-system-font false
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ font 'VictorMono Nerd Font 12'
-
-		# Cursor
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-shape 'ibeam'
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-blink-mode 'on'
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-colors-set false
-
-		echo -e "        [${green}*${reset}] GNOME Terminal"
-	fi
-
-	### HYPER
-	printf "        [${blue}+${reset}] Hyper Terminal"
-	printf "\r"
-
-	if [ ! -x "$(command -v hyper)" ]
-	then
-		eval ${DOWNLOAD_CMD} https://releases.hyper.is/download/deb > /tmp/hyper_amd64.deb
-		sudo apt install -y -qq /tmp/hyper_amd64.deb &> /dev/null
-	fi
-
-	# theme
-	hyper i hyper-one-dark  &> /dev/null
-	# ligatures
-	hyper i hyper-font-ligatures  &> /dev/null
-
-	eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.hyper.js > ${HOME}/.hyper.js
-
-	echo -e "        [${green}*${reset}] Hyper Terminal"
-fi
 
 ## SHELL
 
@@ -280,6 +268,38 @@ eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.p10k.zsh > ${HOME}/.p10k.zsh
 
 echo -e "        [${green}*${reset}] ZSH"
 
+## EMULATOR
+
+if [ ${HAS_GUI} == True ]
+then
+	echo -e "    [${blue}>${reset}] emulator"
+
+	### GNOME Terminal
+
+	if [ ${DESKTOP_ENVIRONMENT} == "gnome" ]
+	then
+		printf "        [${blue}+${reset}] GNOME Terminal"
+		printf "\r"
+
+		GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
+
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ visible-name "Alex Munene's ..."
+
+		# Text Appearance
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-columns 80
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-rows 24
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ use-system-font false
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ font 'VictorMono Nerd Font 12'
+
+		# Cursor
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-shape 'ibeam'
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-blink-mode 'on'
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-colors-set false
+
+		echo -e "        [${green}*${reset}] GNOME Terminal"
+	fi
+fi
+
 ## MULTIPLEXER
 
 echo -e "    [${blue}>${reset}] multiplexer"
@@ -304,7 +324,7 @@ ${directory}/tpm/bin/install_plugins &> /dev/null
 
 echo -e "        [${green}*${reset}] TMUX"
 
-# --- DESKTOP SETUP ---------------------------------------------------------------------
+# --- DESKTOP SETUP <--->
 
 if [ ${HAS_GUI} == True ]
 then
@@ -435,11 +455,12 @@ then
 	echo -e "        [${green}*${reset}] firefox"
 fi
 
-# --- VIRTUALIZATION SETUP --------------------------------------------------------------
+# <---> VIRTUALIZATION SETUP <--->
 
 echo -e "[${blue}>${reset}] virtualization"
 
-[ ${HAS_GUI} == True ] && {
+if [ ${HAS_GUI} == True ]
+then
 	printf "    [${blue}+${reset}] virtualbox"
 	printf "\r"
 
@@ -447,35 +468,38 @@ echo -e "[${blue}>${reset}] virtualization"
 	then
 		#--- install virtualbox
 		[ ! -x "$(command -v virtualbox)" ] && {
-			sudo apt -y -qq install virtualbox &> /dev/null
+			eval ${CMD_PREFIX} apt install -y -qq virtualbox &> /dev/null
 		}
 
-		sudo adduser ${USER} vboxusers &> /dev/null
-		
+		eval ${CMD_PREFIX} adduser ${USER} vboxusers &> /dev/null
+
 		# --- install virtualbox extension pack
 		#export DEBIAN_FRONTEND=noninteractive
 		#sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
 	else
-		if [ ${IS_VM_VB} == True ]
+		if [ ${IS_A_VB_VM} == True ]
 		then
-			sudo apt -y -qq install virtualbox-guest-x11 &> /dev/null
+			eval ${CMD_PREFIX} apt install -y -qq virtualbox-guest-x11 &> /dev/null
 		fi
 	fi
 
 	echo -e "    [${green}*${reset}] virtualbox"
-}
+fi
 
-# --- VERSION CONTROL -------------------------------------------------------------------
+# <---> VERSION CONTROL <--->
 
 echo -e "[${blue}>${reset}] version control"
 
 printf "    [${blue}+${reset}] git"
 printf "\r"
 
-[ ! -x "$(command -v git)" ] && {
-	sudo apt -y -qq git &> /dev/null
-}
-[ -x "$(command -v git)" ] && {
+if [ ! -x "$(command -v git)" ]
+then
+	eval ${CMD_PREFIX} apt install -y -qq git &> /dev/null
+fi
+
+if [ -x "$(command -v git)" ]
+then
 	# Your Identity
 	git config --global user.name "Alex Munene"
 	git config --global user.email "62714471+enenumxela@users.noreply.github.com"
@@ -488,11 +512,11 @@ printf "\r"
 	then
 		git config --global url."https://enenumxela:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 	fi
-}
+fi
 
 echo -e "    [${green}*${reset}] git"
 
-# --- TEXT EDITORS ---------------------------------------------------------------------
+# <---> TEXT EDITORS <--->
 
 echo -e "[${blue}>${reset}] text editors|IDE"
 
@@ -502,7 +526,7 @@ printf "    [${blue}+${reset}] VIM"
 printf "\r"
 
 [ ! -x "$(command -v vim)" ] && {
-	sudo apt -y -qq install vim &> /dev/null
+	eval ${CMD_PREFIX} apt install -y -qq vim &> /dev/null
 }
 
 directory="${HOME}/.vim"
@@ -513,7 +537,7 @@ directory="${HOME}/.vim"
 # {{ PLUGIN MANAGER
 
 [ -e "${directory}/autoload/pathogen.vim" ] && rm -rf ${directory}/autoload/pathogen.vim
-curl -sL https://tpo.pe/pathogen.vim -o ${directory}/autoload/pathogen.vim
+eval ${DOWNLOAD_CMD} https://tpo.pe/pathogen.vim > ${directory}/autoload/pathogen.vim
 
 # }}
 # {{ THEME
@@ -521,12 +545,12 @@ curl -sL https://tpo.pe/pathogen.vim -o ${directory}/autoload/pathogen.vim
 [ -e "${directory}/autoload/onedark.vim" ] && {
 	rm -rf ${directory}/autoload/onedark.vim
 }
-curl -sL https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/onedark.vim -o ${directory}/autoload/onedark.vim
+eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/onedark.vim > ${directory}/autoload/onedark.vim
 
 [ -e "${directory}/colors/onedark.vim" ] && {
 	rm -rf ${directory}/colors/onedark.vim
 }
-curl -sL https://raw.githubusercontent.com/joshdick/onedark.vim/master/colors/onedark.vim -o ${directory}/colors/onedark.vim
+eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/colors/onedark.vim > ${directory}/colors/onedark.vim
 
 [ ! -e "${directory}/autoload/airline/themes" ] && {
 	mkdir -p ${directory}/autoload/airline/themes
@@ -534,7 +558,7 @@ curl -sL https://raw.githubusercontent.com/joshdick/onedark.vim/master/colors/on
 [ -e "${directory}/autoload/airline/themes/onedark.vim" ] && {
 	rm -rf ${directory}/autoload/airline/themes/onedark.vim
 }
-curl -sL https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/airline/themes/onedark.vim -o ${directory}/autoload/airline/themes/onedark.vim
+eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/airline/themes/onedark.vim > ${directory}/autoload/airline/themes/onedark.vim
 
 # }}
 
@@ -558,15 +582,15 @@ then
 
 	if [ ! -x "$(command -v code)" ]
 	then
-		curl -s https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
+		eval ${DOWNLOAD_CMD} https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
 
-		sudo install -o root -g root -m 644 /tmp/packages.microsoft.gpg /usr/share/keyrings/
+		eval ${CMD_PREFIX} install -o root -g root -m 644 /tmp/packages.microsoft.gpg /usr/share/keyrings/
 
 		[ ! -f /etc/apt/sources.list.d/vscode.list ] && {
-			sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
+			eval ${CMD_PREFIX} sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
 		}
 
-		sudo apt -y -qq update &> /dev/null && sudo apt -y -qq install code &> /dev/null
+		eval ${CMD_PREFIX} apt update -y -qq &> /dev/null && eval ${CMD_PREFIX} apt install -y -qq code &> /dev/null
 	fi
 
 	vscode_extensions=(
@@ -581,7 +605,6 @@ then
 		enenumxela.signed-dark-pro # theme
 		aaron-bond.better-comments
 		ms-azuretools.vscode-docker
-		fabiospampinato.vscode-todo-plus
 		coenraads.bracket-pair-colorizer
 		christian-kohler.path-intellisense
 		shd101wyy.markdown-preview-enhanced
@@ -610,7 +633,7 @@ then
 
 fi
 
-# --- LANGUAGE SETUP -------------------------------------------------------------------
+# <---> LANGUAGE SETUP <--->
 
 echo -e "[${blue}>${reset}] language|frameworks|runtime"
 
@@ -626,7 +649,7 @@ printf "\r"
 
 	eval ${DOWNLOAD_CMD} https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz > /tmp/go${GO_VERSION}.linux-amd64.tar.gz
 
-	sudo tar -xzf /tmp/go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
+	eval ${CMD_PREFIX} tar -xzf /tmp/go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
 }
 
 (grep -q "export PATH=\$PATH:/usr/local/go/bin" ~/.profile) || {
@@ -648,7 +671,7 @@ printf "\r"
 
 if [ ! -x "$(command -v nvm)" ]
 then
-	curl -sSL https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash - &> /dev/null
+	eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash - &> /dev/null
 	
 
 	export NVM_DIR="$HOME/.nvm"
@@ -668,7 +691,7 @@ printf "    [${blue}+${reset}] python3"
 printf "\r"
 
 [ ! -x "$(command -v python3)" ] || [ ! -x "$(command -v pip3)" ] && {
-	sudo apt -y -qq install python3 python3-dev python3-pip python3-venv &> /dev/null
+	eval ${CMD_PREFIX} apt install -y -qq python3 python3-dev python3-pip python3-venv &> /dev/null
 }
 
 echo -e "    [${green}*${reset}] python3"
@@ -679,7 +702,7 @@ if [ ${IS_A_VM} == False ]
 then
 	printf "    [${blue}+${reset}] latex"
 	printf "\r"
-	sudo apt -y -qq install texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
+	eval ${CMD_PREFIX} apt install -y -qq texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
 	echo -e "    [${green}*${reset}] latex"
 fi
 
@@ -693,34 +716,34 @@ printf "    [${blue}+${reset}] docker engine"
 printf "\r"
 
 #--- uninstall older versions of docker
-sudo apt remove docker docker-engine docker.io containerd runc &> /dev/null
+eval ${CMD_PREFIX} apt remove docker docker-engine docker.io containerd runc &> /dev/null
 
 if [ ! -x "$(command -v docker)" ]
 then
 	#--- setup repository
-	sudo apt update &> /dev/null
+	eval ${CMD_PREFIX} apt update &> /dev/null
 
-	sudo apt -y -qq install \
+	eval ${CMD_PREFIX} apt install -y -qq \
 		apt-transport-https \
 		ca-certificates \
 		curl \
 		gnupg \
 		lsb-release &> /dev/null
 
-	curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+	eval ${DOWNLOAD_CMD} https://download.docker.com/linux/debian/gpg | eval ${CMD_PREFIX} gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-	sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable' > /etc/apt/sources.list.d/docker.list"
+	eval ${CMD_PREFIX} sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable' > /etc/apt/sources.list.d/docker.list"
 
-	sudo apt update &> /dev/null
+	eval ${CMD_PREFIX} apt update &> /dev/null
 	#--- install docker engine
-	sudo apt -y -qq install docker-ce docker-ce-cli containerd.io &> /dev/null
+	eval ${CMD_PREFIX} apt install -y -qq docker-ce docker-ce-cli containerd.io &> /dev/null
 fi
 
 # > Manage Docker as a non-root user
 # > create the docker group.
-sudo groupadd docker &> /dev/null
+eval ${CMD_PREFIX} groupadd docker &> /dev/null
 # > add your user to the docker group.
-sudo usermod -aG docker $USER &> /dev/null
+eval ${CMD_PREFIX} usermod -aG docker $USER &> /dev/null
 # >  activate the changes to groups
 # newgrp docker 
 
@@ -733,8 +756,8 @@ printf "\r"
 
 if [ ! -x "$(command -v docker-compose)" ]
 then
-	sudo curl -sL "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-	sudo chmod +x /usr/local/bin/docker-compose
+	eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
+	eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-compose
 fi
 
 echo -e "    [${green}*${reset}] docker compose"
@@ -746,13 +769,13 @@ printf "\r"
 
 if [ ! -x "$(command -v docker-machine)" ]
 then
-	sudo curl -sL "https://github.com/docker/machine/releases/download/v0.16.2/docker-machine-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-machine
-	sudo chmod +x /usr/local/bin/docker-machine
+	eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/machine/releases/download/v0.16.2/docker-machine-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-machine
+	eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-machine
 fi
 
 echo -e "    [${green}*${reset}] docker machine"
 
-# <---> CLEANUP <----------------------------------------------------------------------->
+# <---> CLEANUP <<--->-->
 
 echo -e "[${blue}>${reset}] system clean up"
 
@@ -761,7 +784,7 @@ printf "\r"
 
 for task in autoremove autoclean clean
 do
-	sudo apt -y -qq ${task} &> /dev/null
+	eval ${CMD_PREFIX} apt ${task} -y -qq &> /dev/null
 done
 
 echo -e "    [${green}*${reset}] auto(remove|clean)"
@@ -769,10 +792,12 @@ echo -e "    [${green}*${reset}] auto(remove|clean)"
 printf "    [${blue}+${reset}] shred history files"
 printf "\r"
 
-sudo find ${HOME} -type f -name ".*_history" -exec shred -u {} \; &> /dev/null
+eval ${CMD_PREFIX} find ${HOME} -type f -name ".*_history" -exec shred -u {} \; &> /dev/null
 
 echo -e "    [${green}*${reset}] shred history files"
 
-# <---> END <--------------------------------------------------------------------------->
+# <---> END <--->
+
+echo -e "[${blue}>${reset}] END"
 
 echo
