@@ -105,7 +105,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 # <---> CHECK INTERNET ACCESS <--->
 
-echo -e "[${blue}>${reset}] checking internet connection"
+echo -e "[${blue}>${reset}] check internet connection"
 
 for i in {1..10}
 do
@@ -330,11 +330,15 @@ if [ ${HAS_GUI} == True ]
 then
 	echo -e "[${blue}>${reset}] desktop"
 
+	## Environment
+
+	echo -e "    [${blue}>${reset}] environment"
+
 	## GNOME
 
 	if [ ${DESKTOP_ENVIRONMENT} == "gnome" ]
 	then
-		printf "    [${blue}+${reset}] GNOME"
+		printf "        [${blue}+${reset}] GNOME"
 		printf "\r"
 		# Dash to Dock
 		gsettings set org.gnome.shell.extensions.dash-to-dock autohide true
