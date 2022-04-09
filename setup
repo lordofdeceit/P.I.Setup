@@ -649,8 +649,6 @@ printf "\r"
 [ ! -x "$(command -v go)" ] && {
 	GO_VERSION=1.17.6
 
-	# wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz -O /tmp/go${GO_VERSION}.linux-amd64.tar.gz &> /dev/null
-
 	eval ${DOWNLOAD_CMD} https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz > /tmp/go${GO_VERSION}.linux-amd64.tar.gz
 
 	eval ${CMD_PREFIX} tar -xzf /tmp/go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
