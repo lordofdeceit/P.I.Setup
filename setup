@@ -376,7 +376,7 @@ then
 		gsettings set org.gnome.desktop.wm.preferences action-middle-click-titlebar minimize
 		gsettings set org.gnome.desktop.wm.preferences action-right-click-titlebar menu
 
-		echo -e "    [${green}*${reset}] gnome"
+		echo -e "        [${green}*${reset}] GNOME"
 	fi
 
 	##  Browsers
