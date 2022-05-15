@@ -15,11 +15,11 @@ Then run the script:
 * with curl:
 
 	```bash
-	curl -sL https://raw.githubusercontent.com/enenumxela/setup/main/setup | bash
+	curl -sL https://raw.githubusercontent.com/enenumxela/setup/main/P.I.Setup | bash
 	```
 
 * with wget:
 
 	```bash
-	wget -O - https://raw.githubusercontent.com/enenumxela/setup/main/setup | bash
+	wget -O - https://raw.githubusercontent.com/enenumxela/setup/main/P.I.Setup | bash
 	```
