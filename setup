@@ -758,7 +758,15 @@ printf "\r"
 
 if [ ! -x "$(command -v docker-compose)" ]
 then
-	eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
+	DOCKER_COMPOSE_VERSION="latest"
+
+	if [ ${DOCKER_COMPOSE_VERSION} == "latest" ] || [ ${DOCKER_COMPOSE_VERSION} == "" ]
+	then
+		eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
+	else
+		eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
+	fi
+
 	eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-compose
 fi
 
@@ -766,18 +774,20 @@ echo -e "    [${green}*${reset}] docker compose"
 
 ## DOCKER MACHINE
 
-printf "    [${blue}+${reset}] docker machine"
-printf "\r"
+# printf "    [${blue}+${reset}] docker machine"
+# printf "\r"
 
-if [ ! -x "$(command -v docker-machine)" ]
-then
-	eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/machine/releases/download/v0.16.2/docker-machine-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-machine
-	eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-machine
-fi
+# if [ ! -x "$(command -v docker-machine)" ]
+# then
+# 	DOCKER_MACHINE_VERSION="v0.16.2"
+
+# 	eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/machine/releases/download/${DOCKER_MACHINE_VERSION}/docker-machine-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-machine
+# 	eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-machine
+# fi
 
 echo -e "    [${green}*${reset}] docker machine"
 
-# <---> CLEANUP <<--->-->
+# <---> CLEANUP <--->
 
 echo -e "[${blue}>${reset}] system clean up"
 
