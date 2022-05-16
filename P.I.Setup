@@ -3,7 +3,7 @@
 # <---> VARIABLES <--->
 # colors
 red="\033[01;31m"    # Issues/Errors
-blue="\033[01;34m"   # Heading
+blue="\033[01;34m"   # Headings
 green="\033[01;32m"  # Success
 yellow="\033[01;33m" # Warnings/Information
 
@@ -17,31 +17,22 @@ reset="\033[00m"     # Normal
 # script file name (without extension)
 script_name=${0##*/}
 
-#version
+# version
 VERSION="1.0.0"
 
-# has graphical user interface (GUI)
-HAS_GUI=False; type Xorg > /dev/null 2>&1 && HAS_GUI=True
+# dotfiles URL
+DOTFILES_URL="https://raw.githubusercontent.com/enenumxela/setup/main/dotfiles"
 
-# virtualization
-IS_A_VM=False
-IS_A_VB_VM=False
+# command prefix
+CMD_PREFIX=
 
-(sudo dmidecode | grep -iq virtualbox) && IS_A_VM=True && IS_A_VB_VM=True
-
-# desktop environment
-DESKTOP_ENVIRONMENT=
-
-if [ ${HAS_GUI} == True ]
+if [ ${UID} -gt 0 ] && [ -x "$(command -v sudo)" ]
 then
-	if [ "$XDG_CURRENT_DESKTOP" = "" ]
-	then
-		DESKTOP_ENVIRONMENT=$(echo "$XDG_DATA_DIRS" | sed 's/.*\(xfce\|kde\|gnome\).*/\1/')
-	else
-		DESKTOP_ENVIRONMENT=$(echo "$XDG_CURRENT_DESKTOP" | grep -Eoi 'xfce|kde|gnome|mate|cinnamon|lxde|jwm')
-	fi
-
-	DESKTOP_ENVIRONMENT=${DESKTOP_ENVIRONMENT,,}  # convert to lower case
+	CMD_PREFIX="sudo"
+elif [ ${UID} -gt 0 ] && [ ! -x "$(command -v sudo)" ]
+then
+	echo -e "\n${blue}[${red}-${blue}]${reset} failed!...\`sudo\` command not found!\n"
+	exit 1
 fi
 
 # download command
@@ -58,23 +49,57 @@ else
 	exit 1
 fi
 
-#command prefix
-CMD_PREFIX=
-
-if [ ${UID} -gt 0 ] && [ -x "$(command -v sudo)" ]
-then
-	CMD_PREFIX="sudo"
-elif [ ${UID} -gt 0 ] && [ ! -x "$(command -v sudo)" ]
-then
-	echo -e "\n${blue}[${red}-${blue}]${reset} failed!...\`sudo\` command not found!\n"
-	exit 1
-fi
-
-# dotfiles URL
-DOTFILES_URL="https://raw.githubusercontent.com/enenumxela/setup/main/dotfiles"
-
 # has internet access
 HAS_INTERNET_ACCESS=False
+
+# - is it a vm
+# - if a vm, is it virtualbox
+# - wsl
+# - distribution
+# - does it have a GUI
+# - if GUI, what desktop environment
+
+# virtualization
+IS_A_VM=False
+IS_A_VB_VM=False
+
+(sudo dmidecode | grep -iq virtualbox) && IS_A_VM=True && IS_A_VB_VM=True
+
+# WSL
+is_WSL=False
+
+if uname -a | grep -q '^Linux.*Microsoft'
+then
+	is-WSL=True
+fi
+
+# linux distribution
+DISTRIBUTION=
+
+if [ -f /etc/os-release ]
+then
+	DISTRIBUTION=$(awk -F= '/^NAME/{print $2}' /etc/os-release)
+fi
+
+# has graphical user interface (GUI)
+has_GUI=False
+
+type Xorg > /dev/null 2>&1 && has_GUI=True
+
+# desktop environment
+DESKTOP_ENVIRONMENT=
+
+if [ ${has_GUI} == True ]
+then
+	if [ "$XDG_CURRENT_DESKTOP" = "" ]
+	then
+		DESKTOP_ENVIRONMENT=$(echo "$XDG_DATA_DIRS" | sed 's/.*\(xfce\|kde\|gnome\).*/\1/')
+	else
+		DESKTOP_ENVIRONMENT=$(echo "$XDG_CURRENT_DESKTOP" | grep -Eoi 'xfce|kde|gnome|mate|cinnamon|lxde|jwm')
+	fi
+
+	DESKTOP_ENVIRONMENT=${DESKTOP_ENVIRONMENT,,}  # convert to lower case
+fi
 
 # git clone
 git_clone() {
@@ -131,7 +156,7 @@ eval ${CMD_PREFIX} apt -qq update &> /dev/null \
 
 echo -e "[${blue}>${reset}] install essentials"
 
-eval ${CMD_PREFIX} apt install -y -qq git curl wget net-tools jq tree psmisc sqlite3 &> /dev/null
+eval ${CMD_PREFIX} apt install -y -qq git curl wget net-tools jq tree psmisc zip &> /dev/null
 
 # <---> DOWNLOAD FONTS <--->
 
@@ -270,7 +295,7 @@ echo -e "        [${green}*${reset}] ZSH"
 
 ## EMULATOR
 
-if [ ${HAS_GUI} == True ]
+if [ ${has_GUI} == True ]
 then
 	echo -e "    [${blue}>${reset}] emulator"
 
@@ -302,7 +327,7 @@ fi
 
 ## MULTIPLEXER
 
-echo -e "    [${blue}>${reset}] multiplexer"
+echo -e "    [${blue}>${reset}] Session Management"
 
 ### TMUX
 
@@ -326,7 +351,7 @@ echo -e "        [${green}*${reset}] TMUX"
 
 # --- DESKTOP SETUP <--->
 
-if [ ${HAS_GUI} == True ]
+if [ ${has_GUI} == True ]
 then
 	echo -e "[${blue}>${reset}] desktop"
 
@@ -385,7 +410,7 @@ then
 
 	### chrome
 	
-	if [ ${IS_A_VM} == False ]
+	if [ ${IS_A_VM} == False ] && [ ${is_WSL} == False ]
 	then
 		printf "        [${blue}+${reset}] chrome"
 		printf "\r"
@@ -463,7 +488,7 @@ fi
 
 echo -e "[${blue}>${reset}] virtualization"
 
-if [ ${HAS_GUI} == True ]
+if [ ${has_GUI} == True ]
 then
 	printf "    [${blue}+${reset}] virtualbox"
 	printf "\r"
@@ -579,7 +604,7 @@ echo -e "    [${green}*${reset}] VIM"
 
 ## VISUAL STUDIO CODE
 
-if [ ${HAS_GUI} == True ]
+if [ ${has_GUI} == True ]
 then
 	printf "    [${blue}+${reset}] visual studio code"
 	printf "\r"
@@ -700,7 +725,7 @@ echo -e "    [${green}*${reset}] python3"
 
 ## LATEX
 
-if [ ${IS_A_VM} == False ]
+if [ ${IS_A_VM} == False ] && [ ${is_WSL} == False ]
 then
 	printf "    [${blue}+${reset}] latex"
 	printf "\r"
@@ -710,67 +735,68 @@ fi
 
 # <---> CONTAINERIZATION <-------------------------------------------------------------->
 
-echo -e "[${blue}>${reset}] containerization"
-
-## DOCKER
-
-printf "    [${blue}+${reset}] docker engine"
-printf "\r"
-
-#--- uninstall older versions of docker
-eval ${CMD_PREFIX} apt remove docker docker-engine docker.io containerd runc &> /dev/null
-
-if [ ! -x "$(command -v docker)" ]
+if [ ${is_WSL} == False]
 then
-	#--- setup repository
-	eval ${CMD_PREFIX} apt update &> /dev/null
+	echo -e "[${blue}>${reset}] containerization"
 
-	eval ${CMD_PREFIX} apt install -y -qq \
-		apt-transport-https \
-		ca-certificates \
-		curl \
-		gnupg \
-		lsb-release &> /dev/null
+	printf "    [${blue}+${reset}] docker engine"
+	printf "\r"
 
-	eval ${DOWNLOAD_CMD} https://download.docker.com/linux/debian/gpg | eval ${CMD_PREFIX} gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+	#--- uninstall older versions of docker
+	eval ${CMD_PREFIX} apt remove docker docker-engine docker.io containerd runc &> /dev/null
 
-	eval ${CMD_PREFIX} sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable' > /etc/apt/sources.list.d/docker.list"
-
-	eval ${CMD_PREFIX} apt update &> /dev/null
-	#--- install docker engine
-	eval ${CMD_PREFIX} apt install -y -qq docker-ce docker-ce-cli containerd.io &> /dev/null
-fi
-
-# > Manage Docker as a non-root user
-# > create the docker group.
-eval ${CMD_PREFIX} groupadd docker &> /dev/null
-# > add your user to the docker group.
-eval ${CMD_PREFIX} usermod -aG docker $USER &> /dev/null
-# >  activate the changes to groups
-# newgrp docker 
-
-echo -e "    [${green}*${reset}] docker engine"
-
-## DOCKER COMPOSE
-
-printf "    [${blue}+${reset}] docker compose"
-printf "\r"
-
-if [ ! -x "$(command -v docker-compose)" ]
-then
-	DOCKER_COMPOSE_VERSION="latest"
-
-	if [ ${DOCKER_COMPOSE_VERSION} == "latest" ] || [ ${DOCKER_COMPOSE_VERSION} == "" ]
+	if [ ! -x "$(command -v docker)" ]
 	then
-		eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
-	else
-		eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
+		#--- setup repository
+		eval ${CMD_PREFIX} apt update &> /dev/null
+
+		eval ${CMD_PREFIX} apt install -y -qq \
+			apt-transport-https \
+			ca-certificates \
+			curl \
+			gnupg \
+			lsb-release &> /dev/null
+
+		eval ${DOWNLOAD_CMD} https://download.docker.com/linux/debian/gpg | eval ${CMD_PREFIX} gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+		eval ${CMD_PREFIX} sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable' > /etc/apt/sources.list.d/docker.list"
+
+		eval ${CMD_PREFIX} apt update &> /dev/null
+		#--- install docker engine
+		eval ${CMD_PREFIX} apt install -y -qq docker-ce docker-ce-cli containerd.io &> /dev/null
 	fi
 
-	eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-compose
-fi
+	# > Manage Docker as a non-root user
+	# > create the docker group.
+	eval ${CMD_PREFIX} groupadd docker &> /dev/null
+	# > add your user to the docker group.
+	eval ${CMD_PREFIX} usermod -aG docker $USER &> /dev/null
+	# >  activate the changes to groups
+	# newgrp docker 
 
-echo -e "    [${green}*${reset}] docker compose"
+	echo -e "    [${green}*${reset}] docker engine"
+
+	## DOCKER COMPOSE
+
+	printf "    [${blue}+${reset}] docker compose"
+	printf "\r"
+
+	if [ ! -x "$(command -v docker-compose)" ]
+	then
+		DOCKER_COMPOSE_VERSION="latest"
+
+		if [ ${DOCKER_COMPOSE_VERSION} == "latest" ] || [ ${DOCKER_COMPOSE_VERSION} == "" ]
+		then
+			eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
+		else
+			eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
+		fi
+
+		eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-compose
+	fi
+
+	echo -e "    [${green}*${reset}] docker compose"
+fi
 
 ## DOCKER MACHINE
 
@@ -785,9 +811,7 @@ echo -e "    [${green}*${reset}] docker compose"
 # 	eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-machine
 # fi
 
-echo -e "    [${green}*${reset}] docker machine"
-
-# <---> CLEANUP <--->
+# echo -e "    [${green}*${reset}] docker machine"
 
 echo -e "[${blue}>${reset}] system clean up"
 
@@ -807,8 +831,6 @@ printf "\r"
 eval ${CMD_PREFIX} find ${HOME} -type f -name ".*_history" -exec shred -u {} \; &> /dev/null
 
 echo -e "    [${green}*${reset}] shred history files"
-
-# <---> END <--->
 
 echo -e "[${blue}>${reset}] END"
 

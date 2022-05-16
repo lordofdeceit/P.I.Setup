@@ -1,4 +1,4 @@
-# setup
+# Post Install Setup (P.I.Setup) Script.
 
 A post installation setup script.
 
