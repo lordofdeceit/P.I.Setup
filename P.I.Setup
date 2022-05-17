@@ -275,21 +275,9 @@ git_clone "https://github.com/romkatv/powerlevel10k.git" "${HOME}/powerlevel10k"
 git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 # zsh-syntax-highlighting
 git_clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
-# colors
-sudo gem install colorls &> /dev/null
-
-colors="${HOME}/.config/colorls"
-
-if [ ! -d ${colors} ]
-then 
-	mkdir -p ${colors}
-fi
-
-cp $(dirname $(gem which colorls))/yaml/dark_colors.yaml ~/.config/colorls/dark_colors.yaml
 
 eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.zshrc > ${HOME}/.zshrc
 eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.zprofile > ${HOME}/.zprofile
-eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.p10k.zsh > ${HOME}/.p10k.zsh
 
 echo -e "        [${green}*${reset}] ZSH"
 
@@ -314,7 +302,7 @@ then
 		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-columns 80
 		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-rows 24
 		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ use-system-font false
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ font 'VictorMono Nerd Font 12'
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ font 'VictorMono Nerd Font 10'
 
 		# Cursor
 		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-shape 'ibeam'
@@ -735,7 +723,7 @@ fi
 
 # <---> CONTAINERIZATION <-------------------------------------------------------------->
 
-if [ ${is_WSL} == False]
+if [ ${is_WSL} == False ]
 then
 	echo -e "[${blue}>${reset}] containerization"
 
