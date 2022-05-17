@@ -269,8 +269,6 @@ fi
 
 # ohmyzsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended &> /dev/null
-# theme
-git_clone "https://github.com/romkatv/powerlevel10k.git" "${HOME}/powerlevel10k"
 # zsh-autosuggestions
 git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 # zsh-syntax-highlighting
