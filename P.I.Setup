@@ -527,7 +527,6 @@ then
 
 		eval ${DOWNLOAD_CMD} https://download.docker.com/linux/debian/gpg | eval ${CMD_PREFIX} gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-		# eval ${CMD_PREFIX} sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable' > /etc/apt/sources.list.d/docker.list"
 		echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable" | eval ${CMD_PREFIX} tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 		eval ${CMD_PREFIX} apt update &> /dev/null
@@ -556,11 +555,9 @@ then
 
 		if [ ${DOCKER_COMPOSE_VERSION} == "latest" ] || [ ${DOCKER_COMPOSE_VERSION} == "" ]
 		then
-			# eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
 			eval ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" > /tmp/docker-compose
 			
 		else
-			# eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-compose
 			eval ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" > /tmp/docker-compose
 		fi
 		eval ${CMD_PREFIX} mv /tmp/docker-compose /usr/local/bin/docker-compose
@@ -681,7 +678,6 @@ then
 
 		if [ ! -f /etc/apt/sources.list.d/vscode.list ]
 		then
-			# eval ${CMD_PREFIX} sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
 			echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" | eval ${CMD_PREFIX} tee /etc/apt/sources.list.d/vscode.list > /dev/null
 		fi
 
