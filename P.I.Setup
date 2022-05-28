@@ -20,9 +20,14 @@ script_name=${0##*/}
 # version
 VERSION="1.0.0"
 
-# dotfiles URL
-DOTFILES_URL="https://raw.githubusercontent.com/enenumxela/setup/main/dotfiles"
+CONFIGURATIONS="/tmp/configurations"
 
+# has internet access
+# HAS_INTERNET_ACCESS=False
+
+#
+# ---------------------------------------------------------------------------------------
+#
 # command prefix
 CMD_PREFIX=
 
@@ -49,31 +54,45 @@ else
 	exit 1
 fi
 
-# has internet access
-HAS_INTERNET_ACCESS=False
+# git clone
+git_clone() {
+	if [ -d ${2} ]
+	then
+		git -C ${2} pull origin master &> /dev/null
+	else
+		git clone ${1} ${2} &> /dev/null
+	fi
+}
 
-# - is it a vm
-# - if a vm, is it virtualbox
-# - wsl
-# - distribution
-# - does it have a GUI
-# - if GUI, what desktop environment
-
-# virtualization
-IS_A_VM=False
-IS_A_VB_VM=False
-
-(sudo dmidecode | grep -iq virtualbox) && IS_A_VM=True && IS_A_VB_VM=True
-
-# WSL
-is_WSL=False
+#
+# ---------------------------------------------------------------------------------------
+#
+# Windows Subsystem for Linux (WSL)
+isWSL=False
 
 if uname -a | grep -q '^Linux.*Microsoft'
 then
-	is-WSL=True
+	isWSL=True
 fi
 
-# linux distribution
+# virtualization
+# - is it a vm
+# - if a vm, is it virtualbox
+isVM=False
+isVM_VMware=False
+isVM_Virtualbox=False
+
+if (${CMD_PREFIX} dmidecode | grep -iq vmware)
+then
+	isVM=True
+	isVM_isVM_VMware=True
+elif (${CMD_PREFIX} dmidecode | grep -iq virtualbox)
+then
+	isVM=True
+	isVM_Virtualbox=True
+fi
+
+# distribution
 DISTRIBUTION=
 
 if [ -f /etc/os-release ]
@@ -101,15 +120,9 @@ then
 	DESKTOP_ENVIRONMENT=${DESKTOP_ENVIRONMENT,,}  # convert to lower case
 fi
 
-# git clone
-git_clone() {
-	if [ -d ${2} ]
-	then
-		git -C ${2} pull origin master &> /dev/null
-	else
-		git clone ${1} ${2} &> /dev/null
-	fi
-}
+#
+# ---------------------------------------------------------------------------------------
+#
 
 # <---> DISPLAY BANNER <--->
 
@@ -130,18 +143,18 @@ export DEBIAN_FRONTEND=noninteractive
 
 # <---> CHECK INTERNET ACCESS <--->
 
-echo -e "[${blue}>${reset}] check internet connection"
+# echo -e "[${blue}>${reset}] check internet connection"
 
-for i in {1..10}
-do
-	ping -c 1 -W ${i} www.google.com &>/dev/null && break
-done
+# for i in {1..10}
+# do
+# 	ping -c 1 -W ${i} www.google.com &>/dev/null && break
+# done
 
-if [[ $? -ne 0 ]]
-then
-	echo -e "    ${blue}[${red}-${blue}]${reset} failed!...no internet connection!\n"
-	exit 1
-fi
+# if [[ $? -ne 0 ]]
+# then
+# 	echo -e "    ${blue}[${red}-${blue}]${reset} failed!...no internet connection!\n"
+# 	exit 1
+# fi
 
 # <---> UP(DATE|GRADE) <--->
 
@@ -195,10 +208,10 @@ done
 
 if [ ${#missing_fonts[@]} -gt 0 ]
 then
-
-	[ ! -e /tmp/VictorMonoAll.zip ] && {
+	if [ ! -e /tmp/VictorMonoAll.zip ]
+	then
 		eval ${DOWNLOAD_CMD} https://rubjo.github.io/victor-mono/VictorMonoAll.zip > /tmp/VictorMonoAll.zip;
-	}
+	fi
 
 	unzip -qd /tmp/VictorMonoAll /tmp/VictorMonoAll.zip; cp -f /tmp/VictorMonoAll/TTF/* ${HOME}/.local/share/fonts/
 	echo
@@ -236,117 +249,38 @@ then
 	do
 		font="$name $weight Nerd Font Complete.ttf"
 
-		[ ! -e "${fonts_directory}/${font}" ] && {
+		if [ ! -e "${fonts_directory}/${font}" ]
+		then
 			eval ${DOWNLOAD_CMD} https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/${name}/${weight}/complete/Victor%20Mono%20${weight}%20Nerd%20Font%20Complete.ttf > "${fonts_directory}/${font}";
-		}
+		fi
 	done
 fi
 
 echo -e "        [${green}*${reset}] Victor Mono Nerd Font"
 
-# <---> TERMINAL SETUP <--->
+# <---> CONFIGURATION FILES <--->
 
-echo -e "[${blue}>${reset}] terminal"
+echo -e "[${blue}>${reset}] download configuration"
 
-## SHELL
-
-echo -e "    [${blue}>${reset}] shell"
-
-### ZSH
-
-printf "        [${blue}+${reset}] ZSH"
-printf "\r"
-
-if [ ! -x "$(command -v zsh)" ]
+if [ ! -f ${CONFIGURATIONS}.7z ]
 then
-	sudo apt -y -qq install zsh &> /dev/null
+	rm -rf ${CONFIGURATIONS}.7z
 fi
 
-if [ "${SHELL}" != "$(which zsh)" ]
-then
-	sudo chsh -s $(which zsh) ${USER}
-fi
+eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/enenumxela/P.I.Setup/main/configurations.7z > ${CONFIGURATIONS}.7z
 
-# ohmyzsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended &> /dev/null
-# zsh-autosuggestions
-git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
-# zsh-syntax-highlighting
-git_clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+7z x ${CONFIGURATIONS}.7z -o/tmp &> /dev/null
 
-eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.zshrc > ${HOME}/.zshrc
-eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.zprofile > ${HOME}/.zprofile
+# --- SYSTEM <--->
 
-echo -e "        [${green}*${reset}] ZSH"
+echo -e "[${blue}>${reset}] System"
 
-## EMULATOR
-
+## Environment
 if [ ${has_GUI} == True ]
 then
-	echo -e "    [${blue}>${reset}] emulator"
-
-	### GNOME Terminal
-
-	if [ ${DESKTOP_ENVIRONMENT} == "gnome" ]
-	then
-		printf "        [${blue}+${reset}] GNOME Terminal"
-		printf "\r"
-
-		GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
-
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ visible-name "Alex Munene's ..."
-
-		# Text Appearance
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-columns 80
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-rows 24
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ use-system-font false
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ font 'VictorMono Nerd Font 10'
-
-		# Cursor
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-shape 'ibeam'
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-blink-mode 'on'
-		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-colors-set false
-
-		echo -e "        [${green}*${reset}] GNOME Terminal"
-	fi
-fi
-
-## MULTIPLEXER
-
-echo -e "    [${blue}>${reset}] Session Management"
-
-### TMUX
-
-printf "        [${blue}+${reset}] TMUX"
-printf "\r"
-
-if [ ! -x "$(command -v tmux)" ]
-then
-	sudo apt -y -qq install tmux &> /dev/null
-fi
-
-eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.tmux.conf > ${HOME}/.tmux.conf
-
-directory="${HOME}/.tmux/plugins"; [ ! -d ${directory} ] && mkdir -p ${directory}
-
-git_clone "https://github.com/tmux-plugins/tpm" "${directory}/tpm"
-
-${directory}/tpm/bin/install_plugins &> /dev/null
-
-echo -e "        [${green}*${reset}] TMUX"
-
-# --- DESKTOP SETUP <--->
-
-if [ ${has_GUI} == True ]
-then
-	echo -e "[${blue}>${reset}] desktop"
-
-	## Environment
-
-	echo -e "    [${blue}>${reset}] environment"
+	echo -e "    [${blue}>${reset}] Desktop Environment"
 
 	## GNOME
-
 	if [ ${DESKTOP_ENVIRONMENT} == "gnome" ]
 	then
 		printf "        [${blue}+${reset}] GNOME"
@@ -389,88 +323,153 @@ then
 
 		echo -e "        [${green}*${reset}] GNOME"
 	fi
+else
+	echo -e "    [${blue}>${reset}] Desktop Environment (skipped)"
+fi
 
-	##  Browsers
+## TERMINAL
 
-	echo -e "    [${blue}>${reset}] browser"
+echo -e "    [${blue}>${reset}] Terminal"
 
-	### chrome
-	
-	if [ ${IS_A_VM} == False ] && [ ${is_WSL} == False ]
+## SHELL
+
+echo -e "        [${blue}>${reset}] Shell"
+
+### ZSH
+
+printf "            [${blue}+${reset}] ZSH"
+printf "\r"
+
+if [ ! -x "$(command -v zsh)" ]
+then
+	eval ${CMD_PREFIX} apt -y -qq install zsh &> /dev/null
+fi
+
+if [ "${SHELL}" != "$(which zsh)" ]
+then
+	eval ${CMD_PREFIX} chsh -s $(which zsh) ${USER}
+fi
+
+# ohmyzsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended &> /dev/null
+# zsh-autosuggestions
+git_clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+# zsh-syntax-highlighting
+git_clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+
+cp -rf ${CONFIGURATIONS}/.zshrc ${HOME}/.zshrc
+cp -rf ${CONFIGURATIONS}/.zprofile ${HOME}/.zprofile
+
+echo -e "            [${green}*${reset}] ZSH"
+
+## EMULATOR
+
+if [ ${has_GUI} == True ]
+then
+	echo -e "        [${blue}>${reset}] Emulator"
+
+	### GNOME Terminal
+
+	if [ ${DESKTOP_ENVIRONMENT} == "gnome" ]
 	then
-		printf "        [${blue}+${reset}] chrome"
+		printf "            [${blue}+${reset}] GNOME Terminal"
 		printf "\r"
-		
-		[ ! -x "$(command -v google-chrome)" ] && {
-			sudo apt -qq update &> /dev/null
 
-			deb_file="/tmp/google-chrome-stable_current_amd64.deb"
-			[ ! -f ${deb_file} ] && {
-				wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O ${deb_file} &> /dev/null
-			}
+		GNOME_TERMINAL_PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | awk -F \' '{print $2}')
 
-			sudo apt -y -qq install ${deb_file} &> /dev/null
-		}
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ visible-name "Alex Munene's ..."
 
-		echo -e "        [${green}*${reset}] chrome"
+		# Text Appearance
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-columns 80
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ default-size-rows 24
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ use-system-font false
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ font 'VictorMono Nerd Font 10'
+
+		# Cursor
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-shape 'ibeam'
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-blink-mode 'on'
+		gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$GNOME_TERMINAL_PROFILE/ cursor-colors-set false
+
+		echo -e "            [${green}*${reset}] GNOME Terminal"
+	fi
+else
+	echo -e "        [${blue}>${reset}] Emulator (skipped)"
+fi
+
+## SESSION MANAGER
+
+echo -e "        [${blue}>${reset}] Session Manager"
+
+### TMUX
+
+printf "            [${blue}+${reset}] TMUX"
+printf "\r"
+
+if [ ! -x "$(command -v tmux)" ]
+then
+	eval ${CMD_PREFIX} apt -y -qq install tmux &> /dev/null
+fi
+
+eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.tmux.conf > ${HOME}/.tmux.conf
+
+directory="${HOME}/.tmux/plugins"; [ ! -d ${directory} ] && mkdir -p ${directory}
+
+git_clone "https://github.com/tmux-plugins/tpm" "${directory}/tpm"
+
+${directory}/tpm/bin/install_plugins &> /dev/null
+
+echo -e "            [${green}*${reset}] TMUX"
+
+##  Browsers
+
+echo -e "    [${blue}>${reset}] Browsers"
+
+### chrome
+
+if [ ${isVM} == False ] && [ ${isWSL} == False ]
+then
+	printf "        [${blue}+${reset}] chrome"
+	printf "\r"
+	
+	if [ ! -x "$(command -v google-chrome)" ]
+	then
+		eval ${CMD_PREFIX} apt -qq update &> /dev/null
+
+		deb_file="/tmp/google-chrome-stable_current_amd64.deb"
+		if [ ! -f ${deb_file} ]
+		then
+			wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O ${deb_file} &> /dev/null
+		fi
+
+		eval ${CMD_PREFIX} apt -y -qq install ${deb_file} &> /dev/null
 	fi
 
-	### firefox
+	echo -e "        [${green}*${reset}] chrome"
+else
+	echo -e "        [${green}*${reset}] chrome (skipped)"
+fi
 
+### firefox
+
+if [ ${isWSL} == False ]
+then
 	printf "        [${blue}+${reset}] firefox"
 	printf "\r"
 
-	FIREFOX_PATH="${HOME}/.mozilla/firefox"
-	FIREFOX_PROFILE_PATH="$(find ${FIREFOX_PATH}/*.default-esr/ -maxdepth 0 -mindepth 0 -type d -name '*.default*' -print -quit)"
-
-	#### Preferences
-
-	eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/firefox/user.js > ${FIREFOX_PROFILE_PATH}/user.js
-
-	#### Bookmarks
-	# FIREFOX_PLACES_SQLITE="${FIREFOX_PROFILE_PATH}/places.sqlite"
-
-	# PID=$(fuser ${FIREFOX_PLACES_SQLITE})
-
-	# if [ "${PID}" != "" ]
-	# then
-	# 	echo "${PID}"
-	# 	kill -9 ${PID}
-	# 	sleep 5s
-	# fi
-
-	# sqlite3 ${FIREFOX_PLACES_SQLITE} "SELECT moz_places.url, moz_bookmarks.title FROM moz_places, moz_bookmarks WHERE moz_bookmarks.fk = moz_places.id AND moz_bookmarks.type = 1 AND length(moz_bookmarks.title) > 0 ORDER BY moz_bookmarks.dateAdded"
-
-	# sqlite3 ${FIREFOX_PLACES_SQLITE} "INSERT INTO moz_bookmarks (type, parent, title, dateAdded) VALUES (1,5,'MyBookmark',CURRENT_TIMESTAMP)"
-
-	# sqlite3 ${FIREFOX_PLACES_SQLITE} "
-	# INSERT INTO moz_places (url) VALUES ('https://explainshell.com/'); 
-	# INSERT INTO moz_bookmarks (type, fk, parent, title, dateAdded) VALUES (1, (SELECT id FROM moz_places WHERE url='https://explainshell.com/'), 5, Eexplain Shell', CURRENT_TIMESTAMP);
-	# "
-
-	#### Extensions
-	FIREFOX_EXT_PATH="${FIREFOX_PROFILE_PATH}/extensions"
-
-	if [ ! -d ${FIREFOX_EXT_PATH} ]
+	if [ ! -x "$(command -v firefox)" ]
 	then
-		mkdir -p "${FIREFOX_EXT_PATH}/"
+		eval ${CMD_PREFIX} apt -y -qq install firefox-esr ca-certificates libcanberra-gtk3-module &> /dev/null
 	fi
 
-	##### Privacy Badger
-	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/privacy-badger17/latest.xpi" -o "${FIREFOX_EXT_PATH}/jid1-MnnxcxisBPnSXQ@jetpack"
-	##### HTTPS Everywhere
-	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/https-everywhere/latest.xpi" -o "${FIREFOX_EXT_PATH}/https-everywhere@eff.org.xpi"
-	##### uBlock Origin
-	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi" -o "${FIREFOX_EXT_PATH}/uBlock0@raymondhill.net.xpi"
-	##### Cookie Auto Delete
-	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/cookie-autodelete/latest.xpi" -o "${FIREFOX_EXT_PATH}/CookieAutoDelete@kennydo.com.xpi"
-	##### Bitwarden
-	curl -skLf "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi" -o "${FIREFOX_EXT_PATH}/{446900e4-71c2-419f-a6a7-df9c091e268b}.xpi"
+	cp -rf ${CONFIGURATIONS}/.mozilla ${HOME}/.mozilla
 
 	echo -e "        [${green}*${reset}] firefox"
+else
+	echo -e "        [${blue}+${reset}] firefox (skipped)"
 fi
 
-# <---> VIRTUALIZATION SETUP <--->
+# <---> SYSTEM <--->
+# <---> VIRTUALIZATION <--->
 
 echo -e "[${blue}>${reset}] virtualization"
 
@@ -479,7 +478,7 @@ then
 	printf "    [${blue}+${reset}] virtualbox"
 	printf "\r"
 
-	if [ ${IS_A_VM} == False ]
+	if [ ${isVM} == False ]
 	then
 		#--- install virtualbox
 		[ ! -x "$(command -v virtualbox)" ] && {
@@ -492,7 +491,7 @@ then
 		#export DEBIAN_FRONTEND=noninteractive
 		#sudo apt -y -qq install virtualbox-ext-pack &> /dev/null
 	else
-		if [ ${IS_A_VB_VM} == True ]
+		if [ ${isVM_Virtualbox} == True ]
 		then
 			eval ${CMD_PREFIX} apt install -y -qq virtualbox-guest-x11 &> /dev/null
 		fi
@@ -501,227 +500,10 @@ then
 	echo -e "    [${green}*${reset}] virtualbox"
 fi
 
-# <---> VERSION CONTROL <--->
+# <---> VIRTUALIZATION <--->
+# <---> CONTAINERIZATION <--->
 
-echo -e "[${blue}>${reset}] version control"
-
-printf "    [${blue}+${reset}] git"
-printf "\r"
-
-if [ ! -x "$(command -v git)" ]
-then
-	eval ${CMD_PREFIX} apt install -y -qq git &> /dev/null
-fi
-
-if [ -x "$(command -v git)" ]
-then
-	# Your Identity
-	git config --global user.name "Alex Munene"
-	git config --global user.email "62714471+enenumxela@users.noreply.github.com"
-	# Your Editor
-	git config --global core.editor vim
-	# Your default branch name
-	git config --global init.defaultBranch main
-
-	if [ "${GITHUB_TOKEN}" != "" ]
-	then
-		git config --global url."https://enenumxela:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-	fi
-fi
-
-echo -e "    [${green}*${reset}] git"
-
-# <---> TEXT EDITORS <--->
-
-echo -e "[${blue}>${reset}] text editors|IDE"
-
-## VIM
-
-printf "    [${blue}+${reset}] VIM"
-printf "\r"
-
-[ ! -x "$(command -v vim)" ] && {
-	eval ${CMD_PREFIX} apt install -y -qq vim &> /dev/null
-}
-
-directory="${HOME}/.vim"
-[ ! -d ${directory}/colors ] && mkdir -p ${directory}/colors
-[ ! -d ${directory}/bundle ] && mkdir -p ${directory}/bundle
-[ ! -d ${directory}/autoload ] && mkdir -p ${directory}/autoload
-
-# {{ PLUGIN MANAGER
-
-[ -e "${directory}/autoload/pathogen.vim" ] && rm -rf ${directory}/autoload/pathogen.vim
-eval ${DOWNLOAD_CMD} https://tpo.pe/pathogen.vim > ${directory}/autoload/pathogen.vim
-
-# }}
-# {{ THEME
-
-[ -e "${directory}/autoload/onedark.vim" ] && {
-	rm -rf ${directory}/autoload/onedark.vim
-}
-eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/onedark.vim > ${directory}/autoload/onedark.vim
-
-[ -e "${directory}/colors/onedark.vim" ] && {
-	rm -rf ${directory}/colors/onedark.vim
-}
-eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/colors/onedark.vim > ${directory}/colors/onedark.vim
-
-[ ! -e "${directory}/autoload/airline/themes" ] && {
-	mkdir -p ${directory}/autoload/airline/themes
-}
-[ -e "${directory}/autoload/airline/themes/onedark.vim" ] && {
-	rm -rf ${directory}/autoload/airline/themes/onedark.vim
-}
-eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/airline/themes/onedark.vim > ${directory}/autoload/airline/themes/onedark.vim
-
-# }}
-
-git_clone "https://github.com/preservim/nerdtree.git" "${directory}/bundle/nerdtree"
-git_clone "https://github.com/ryanoasis/vim-devicons.git" "${directory}/bundle/vim-devicons"
-git_clone "https://github.com/vim-airline/vim-airline.git" "${directory}/bundle/vim-airline"
-git_clone "https://github.com/airblade/vim-gitgutter.git" "${directory}/bundle/vim-gitgutter"
-git_clone "https://github.com/Xuyuanp/nerdtree-git-plugin.git" "${directory}/bundle/nerdtree-git-plugin"
-git_clone "https://github.com/tpope/vim-fugitive.git" "${directory}/bundle/vim-fugitive"
-
-eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.vimrc > ${HOME}/.vim/vimrc
-
-echo -e "    [${green}*${reset}] VIM"
-
-## VISUAL STUDIO CODE
-
-if [ ${has_GUI} == True ]
-then
-	printf "    [${blue}+${reset}] visual studio code"
-	printf "\r"
-
-	if [ ! -x "$(command -v code)" ]
-	then
-		eval ${DOWNLOAD_CMD} https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
-
-		eval ${CMD_PREFIX} install -o root -g root -m 644 /tmp/packages.microsoft.gpg /usr/share/keyrings/
-
-		[ ! -f /etc/apt/sources.list.d/vscode.list ] && {
-			eval ${CMD_PREFIX} sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
-		}
-
-		eval ${CMD_PREFIX} apt update -y -qq &> /dev/null && eval ${CMD_PREFIX} apt install -y -qq code &> /dev/null
-	fi
-
-	vscode_extensions=(
-		golang.go # go(golang) support
-		eamodio.gitlens
-		ms-python.python # python support
-		mhutchie.git-graph
-		redhat.vscode-yaml
-		dbaeumer.vscode-eslint
-		james-yu.latex-workshop
-		pkief.material-icon-theme # icons
-		enenumxela.signed-dark-pro # theme
-		aaron-bond.better-comments
-		ms-azuretools.vscode-docker
-		coenraads.bracket-pair-colorizer
-		christian-kohler.path-intellisense
-		shd101wyy.markdown-preview-enhanced
-		)
-	missing_vscode_extensions=()
-
-	for i in "${vscode_extensions[@]}"
-	do
-		if [ "$(code --list-extensions | grep '${i}')" == "" ]
-		then
-			missing_vscode_extensions+=(${i})
-		fi
-	done
-
-	if [ ${#missing_vscode_extensions[@]} -gt 0 ]
-	then
-		for i in "${missing_vscode_extensions[@]}"
-		do
-			code --install-extension ${i} &> /dev/null
-		done
-	fi
-
-	eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/vscode/settings.json > ${HOME}/.config/Code/User/settings.json
-
-	echo -e "    [${green}*${reset}] visual studio code"
-
-fi
-
-# <---> LANGUAGE SETUP <--->
-
-echo -e "[${blue}>${reset}] language|frameworks|runtime"
-
-## GOLANG
-
-printf "    [${blue}+${reset}] golang"
-printf "\r"
-
-[ ! -x "$(command -v go)" ] && {
-	GO_VERSION=1.17.6
-
-	eval ${DOWNLOAD_CMD} https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz > /tmp/go${GO_VERSION}.linux-amd64.tar.gz
-
-	eval ${CMD_PREFIX} tar -xzf /tmp/go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
-}
-
-(grep -q "export PATH=\$PATH:/usr/local/go/bin" ~/.profile) || {
-	echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.profile
-}
-
-(grep -q "export PATH=\$PATH:\${HOME}/go/bin" ~/.profile) || {
-	echo "export PATH=\$PATH:\${HOME}/go/bin" >> ~/.profile
-}
-
-source ~/.profile
-
-echo -e "    [${green}*${reset}] golang"
-
-## NODEJS
-
-printf "    [${blue}+${reset}] node (nvm)"
-printf "\r"
-
-if [ ! -x "$(command -v nvm)" ]
-then
-	eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash - &> /dev/null
-	
-
-	export NVM_DIR="$HOME/.nvm"
-	[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-	[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-	source ${HOME}/.bashrc
-
-	nvm install node &> /dev/null
-fi
-
-echo -e "    [${green}*${reset}] node (nvm)"
-
-## PYTHON3
-
-printf "    [${blue}+${reset}] python3"
-printf "\r"
-
-[ ! -x "$(command -v python3)" ] || [ ! -x "$(command -v pip3)" ] && {
-	eval ${CMD_PREFIX} apt install -y -qq python3 python3-dev python3-pip python3-venv &> /dev/null
-}
-
-echo -e "    [${green}*${reset}] python3"
-
-## LATEX
-
-if [ ${IS_A_VM} == False ] && [ ${is_WSL} == False ]
-then
-	printf "    [${blue}+${reset}] latex"
-	printf "\r"
-	eval ${CMD_PREFIX} apt install -y -qq texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
-	echo -e "    [${green}*${reset}] latex"
-fi
-
-# <---> CONTAINERIZATION <-------------------------------------------------------------->
-
-if [ ${is_WSL} == False ]
+if [ ${isWSL} == False ]
 then
 	echo -e "[${blue}>${reset}] containerization"
 
@@ -799,25 +581,228 @@ fi
 
 # echo -e "    [${green}*${reset}] docker machine"
 
+# <---> CONTAINERIZATION <--->
+
+echo -e "[${blue}>${reset}] Development"
+
+echo -e "    [${blue}>${reset}] version control"
+
+printf "        [${blue}+${reset}] git"
+printf "\r"
+if [ ! -x "$(command -v git)" ]
+then
+	eval ${CMD_PREFIX} apt install -y -qq git &> /dev/null
+fi
+
+if [ -x "$(command -v git)" ]
+then
+	# Your Identity
+	git config --global user.name "Alex Munene"
+	git config --global user.email "62714471+enenumxela@users.noreply.github.com"
+	# Your Editor
+	git config --global core.editor vim
+	# Your default branch name
+	git config --global init.defaultBranch main
+
+	if [ "${GITHUB_TOKEN}" != "" ]
+	then
+		git config --global url."https://enenumxela:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+	fi
+fi
+echo -e "        [${green}*${reset}] git"
+
+echo -e "    [${blue}>${reset}] text editors|IDE"
+
+printf "        [${blue}+${reset}] VIM"
+printf "\r"
+if [ ! -x "$(command -v vim)" ]
+then
+	eval ${CMD_PREFIX} apt install -y -qq vim &> /dev/null
+fi
+
+directory="${HOME}/.vim"
+[ ! -d ${directory}/colors ] && mkdir -p ${directory}/colors
+[ ! -d ${directory}/bundle ] && mkdir -p ${directory}/bundle
+[ ! -d ${directory}/autoload ] && mkdir -p ${directory}/autoload
+
+# {{ PLUGIN MANAGER
+
+[ -e "${directory}/autoload/pathogen.vim" ] && rm -rf ${directory}/autoload/pathogen.vim
+eval ${DOWNLOAD_CMD} https://tpo.pe/pathogen.vim > ${directory}/autoload/pathogen.vim
+
+# }}
+# {{ THEME
+
+[ -e "${directory}/autoload/onedark.vim" ] && {
+	rm -rf ${directory}/autoload/onedark.vim
+}
+eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/onedark.vim > ${directory}/autoload/onedark.vim
+
+[ -e "${directory}/colors/onedark.vim" ] && {
+	rm -rf ${directory}/colors/onedark.vim
+}
+eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/colors/onedark.vim > ${directory}/colors/onedark.vim
+
+[ ! -e "${directory}/autoload/airline/themes" ] && {
+	mkdir -p ${directory}/autoload/airline/themes
+}
+[ -e "${directory}/autoload/airline/themes/onedark.vim" ] && {
+	rm -rf ${directory}/autoload/airline/themes/onedark.vim
+}
+eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/airline/themes/onedark.vim > ${directory}/autoload/airline/themes/onedark.vim
+
+# }}
+
+git_clone "https://github.com/preservim/nerdtree.git" "${directory}/bundle/nerdtree"
+git_clone "https://github.com/ryanoasis/vim-devicons.git" "${directory}/bundle/vim-devicons"
+git_clone "https://github.com/vim-airline/vim-airline.git" "${directory}/bundle/vim-airline"
+git_clone "https://github.com/airblade/vim-gitgutter.git" "${directory}/bundle/vim-gitgutter"
+git_clone "https://github.com/Xuyuanp/nerdtree-git-plugin.git" "${directory}/bundle/nerdtree-git-plugin"
+git_clone "https://github.com/tpope/vim-fugitive.git" "${directory}/bundle/vim-fugitive"
+
+cp -rf ${CONFIGURATIONS}/.vimrc ${HOME}/.vim/vimrc
+
+echo -e "        [${green}*${reset}] VIM"
+
+if [ ${has_GUI} == True ]
+then
+	printf "        [${blue}+${reset}] visual studio code"
+	printf "\r"
+
+	if [ ! -x "$(command -v code)" ]
+	then
+		eval ${DOWNLOAD_CMD} https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
+
+		eval ${CMD_PREFIX} install -o root -g root -m 644 /tmp/packages.microsoft.gpg /usr/share/keyrings/
+
+		[ ! -f /etc/apt/sources.list.d/vscode.list ] && {
+			eval ${CMD_PREFIX} sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
+		}
+
+		eval ${CMD_PREFIX} apt update -y -qq &> /dev/null && eval ${CMD_PREFIX} apt install -y -qq code &> /dev/null
+	fi
+
+	vscode_extensions=(
+		golang.go # go(golang) support
+		eamodio.gitlens
+		ms-python.python # python support
+		mhutchie.git-graph
+		redhat.vscode-yaml
+		dbaeumer.vscode-eslint
+		james-yu.latex-workshop
+		pkief.material-icon-theme # icons
+		enenumxela.signed-dark-pro # theme
+		aaron-bond.better-comments
+		ms-azuretools.vscode-docker
+		coenraads.bracket-pair-colorizer
+		christian-kohler.path-intellisense
+		shd101wyy.markdown-preview-enhanced
+		)
+	missing_vscode_extensions=()
+
+	for i in "${vscode_extensions[@]}"
+	do
+		if [ "$(code --list-extensions | grep '${i}')" == "" ]
+		then
+			missing_vscode_extensions+=(${i})
+		fi
+	done
+
+	if [ ${#missing_vscode_extensions[@]} -gt 0 ]
+	then
+		for i in "${missing_vscode_extensions[@]}"
+		do
+			code --install-extension ${i} &> /dev/null
+		done
+	fi
+
+	cp -rf ${CONFIGURATIONS}/vscode/settings.json ${HOME}/.config/Code/User/settings.json
+
+	echo -e "        [${green}*${reset}] visual studio code"
+else
+	echo -e "        [${green}*${reset}] visual studio code (skipped)"
+fi
+
+echo -e "    [${blue}>${reset}] language|frameworks|runtime"
+
+printf "        [${blue}+${reset}] golang"
+printf "\r"
+if [ ! -x "$(command -v go)" ]
+then
+	GO_VERSION=1.18.2
+
+	eval ${DOWNLOAD_CMD} https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz > /tmp/go${GO_VERSION}.linux-amd64.tar.gz
+
+	eval ${CMD_PREFIX} tar -xzf /tmp/go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
+fi
+(grep -q "export PATH=\$PATH:/usr/local/go/bin" ~/.profile) || {
+	echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.profile
+}
+(grep -q "export PATH=\$PATH:\${HOME}/go/bin" ~/.profile) || {
+	echo "export PATH=\$PATH:\${HOME}/go/bin" >> ~/.profile
+}
+source ~/.profile
+echo -e "        [${green}*${reset}] golang"
+
+## NODEJS
+
+printf "        [${blue}+${reset}] node (nvm)"
+printf "\r"
+if [ ! -x "$(command -v nvm)" ]
+then
+	eval ${DOWNLOAD_CMD} https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash - &> /dev/null
+	
+
+	export NVM_DIR="$HOME/.nvm"
+	[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+	[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+	source ${HOME}/.bashrc
+
+	nvm install node &> /dev/null
+fi
+echo -e "        [${green}*${reset}] node (nvm)"
+
+printf "        [${blue}+${reset}] python3"
+printf "\r"
+if [ ! -x "$(command -v python3)" ] || [ ! -x "$(command -v pip3)" ]
+then
+	eval ${CMD_PREFIX} apt install -y -qq python3 python3-dev python3-pip python3-venv &> /dev/null
+fi
+echo -e "        [${green}*${reset}] python3"
+
+if [ ${isVM} == False ] && [ ${isWSL} == False ]
+then
+	printf "        [${blue}+${reset}] latex"
+	printf "\r"
+	eval ${CMD_PREFIX} apt install -y -qq texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
+	echo -e "        [${green}*${reset}] latex"
+else
+	echo -e "        [${green}*${reset}] latex (skipped)"
+fi
+
 echo -e "[${blue}>${reset}] system clean up"
 
-printf "    [${blue}+${reset}] auto(remove|clean)"
-printf "\r"
+echo -e "    [${blue}>${reset}] auto(remove|clean)"
 
 for task in autoremove autoclean clean
 do
+	printf "        [${blue}+${reset}] ${task}"
+	printf "\r"
 	eval ${CMD_PREFIX} apt ${task} -y -qq &> /dev/null
+	echo -e "        [${green}*${reset}] ${task}"
 done
 
-echo -e "    [${green}*${reset}] auto(remove|clean)"
+echo -e "    [${blue}>${reset}] Files"
 
-printf "    [${blue}+${reset}] shred history files"
+printf "        [${blue}+${reset}] remove configurations"
 printf "\r"
+rm -rf ${CONFIGURATIONS} ${CONFIGURATIONS}.7z
+echo -e "        [${green}*${reset}] remove configurations"
 
+printf "        [${blue}+${reset}] shred history files"
+printf "\r"
 eval ${CMD_PREFIX} find ${HOME} -type f -name ".*_history" -exec shred -u {} \; &> /dev/null
+echo -e "        [${green}*${reset}] shred history files"
 
-echo -e "    [${green}*${reset}] shred history files"
-
-echo -e "[${blue}>${reset}] END"
-
-echo
+echo -e "[${blue}>${reset}] END\n"
