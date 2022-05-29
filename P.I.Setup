@@ -410,7 +410,7 @@ then
 	eval ${CMD_PREFIX} apt -y -qq install tmux &> /dev/null
 fi
 
-eval ${DOWNLOAD_CMD} ${DOTFILES_URL}/.tmux.conf > ${HOME}/.tmux.conf
+cp -rf ${CONFIGURATIONS}/.tmux.conf ${HOME}/.tmux.conf
 
 directory="${HOME}/.tmux/plugins"; [ ! -d ${directory} ] && mkdir -p ${directory}
 
