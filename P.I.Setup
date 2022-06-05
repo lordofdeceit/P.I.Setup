@@ -22,9 +22,6 @@ VERSION="1.0.0"
 
 CONFIGURATIONS="/tmp/configurations"
 
-# has internet access
-# HAS_INTERNET_ACCESS=False
-
 #
 # ---------------------------------------------------------------------------------------
 #
@@ -97,7 +94,7 @@ DISTRIBUTION=
 
 if [ -f /etc/os-release ]
 then
-	DISTRIBUTION=$(awk -F= '/^NAME/{print $2}' /etc/os-release)
+	DISTRIBUTION=$(awk '/DISTRIB_ID=/' /etc/*-release | sed 's/DISTRIB_ID=//' | tr '[:upper:]' '[:lower:]')
 fi
 
 # has graphical user interface (GUI)
@@ -141,21 +138,6 @@ echo -e "[${blue}>${reset}] START"
 
 export DEBIAN_FRONTEND=noninteractive
 
-# <---> CHECK INTERNET ACCESS <--->
-
-# echo -e "[${blue}>${reset}] check internet connection"
-
-# for i in {1..10}
-# do
-# 	ping -c 1 -W ${i} www.google.com &>/dev/null && break
-# done
-
-# if [[ $? -ne 0 ]]
-# then
-# 	echo -e "    ${blue}[${red}-${blue}]${reset} failed!...no internet connection!\n"
-# 	exit 1
-# fi
-
 # <---> UP(DATE|GRADE) <--->
 
 echo -e "[${blue}>${reset}] up(date|grade)"
@@ -169,7 +151,7 @@ eval ${CMD_PREFIX} apt -qq update &> /dev/null \
 
 echo -e "[${blue}>${reset}] install essentials"
 
-eval ${CMD_PREFIX} apt install -y -qq git curl wget net-tools jq tree psmisc zip &> /dev/null
+eval ${CMD_PREFIX} apt install -y -qq git curl wget net-tools jq tree psmisc zip p7zip-full &> /dev/null
 
 # <---> DOWNLOAD FONTS <--->
 
@@ -507,15 +489,13 @@ if [ ${isWSL} == False ]
 then
 	echo -e "[${blue}>${reset}] containerization"
 
-	printf "    [${blue}+${reset}] docker engine"
+	printf "    [${blue}+${reset}] docker & docker compose"
 	printf "\r"
-
-	#--- uninstall older versions of docker
-	eval ${CMD_PREFIX} apt remove docker docker-engine docker.io containerd runc &> /dev/null
 
 	if [ ! -x "$(command -v docker)" ]
 	then
-		#--- setup repository
+		eval ${CMD_PREFIX} apt remove docker docker-engine docker.io containerd runc &> /dev/null
+		
 		eval ${CMD_PREFIX} apt update &> /dev/null
 
 		eval ${CMD_PREFIX} apt install -y -qq \
@@ -525,13 +505,25 @@ then
 			gnupg \
 			lsb-release &> /dev/null
 
-		eval ${DOWNLOAD_CMD} https://download.docker.com/linux/debian/gpg | eval ${CMD_PREFIX} gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+		if [ ! -d /etc/apt/keyrings ]
+		then
+			eval ${CMD_PREFIX} mkdir -p /etc/apt/keyrings
+		fi
 
-		echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable" | eval ${CMD_PREFIX} tee /etc/apt/sources.list.d/docker.list > /dev/null
+		if [ "${DISTRIBUTION}" == "ubuntu" ]
+		then
+ 			eval ${DOWNLOAD_CMD} https://download.docker.com/linux/ubuntu/gpg | eval ${CMD_PREFIX} gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+			echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | eval ${CMD_PREFIX} tee /etc/apt/sources.list.d/docker.list > /dev/null
+		else
+			eval ${DOWNLOAD_CMD} https://download.docker.com/linux/debian/gpg | eval ${CMD_PREFIX} gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+			echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian buster stable" | eval ${CMD_PREFIX} tee /etc/apt/sources.list.d/docker.list > /dev/null
+		fi
 
 		eval ${CMD_PREFIX} apt update &> /dev/null
-		#--- install docker engine
-		eval ${CMD_PREFIX} apt install -y -qq docker-ce docker-ce-cli containerd.io &> /dev/null
+
+		eval ${CMD_PREFIX} apt install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin &> /dev/null
 	fi
 
 	# > Manage Docker as a non-root user
@@ -542,45 +534,8 @@ then
 	# >  activate the changes to groups
 	# newgrp docker 
 
-	echo -e "    [${green}*${reset}] docker engine"
-
-	## DOCKER COMPOSE
-
-	printf "    [${blue}+${reset}] docker compose"
-	printf "\r"
-
-	if [ ! -x "$(command -v docker-compose)" ]
-	then
-		DOCKER_COMPOSE_VERSION="latest"
-
-		if [ ${DOCKER_COMPOSE_VERSION} == "latest" ] || [ ${DOCKER_COMPOSE_VERSION} == "" ]
-		then
-			eval ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" > /tmp/docker-compose
-			
-		else
-			eval ${DOWNLOAD_CMD} "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" > /tmp/docker-compose
-		fi
-		eval ${CMD_PREFIX} mv /tmp/docker-compose /usr/local/bin/docker-compose
-		eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-compose
-	fi
-
-	echo -e "    [${green}*${reset}] docker compose"
+	echo -e "    [${green}*${reset}] docker & docker compose"
 fi
-
-## DOCKER MACHINE
-
-# printf "    [${blue}+${reset}] docker machine"
-# printf "\r"
-
-# if [ ! -x "$(command -v docker-machine)" ]
-# then
-# 	DOCKER_MACHINE_VERSION="v0.16.2"
-
-# 	eval ${CMD_PREFIX} ${DOWNLOAD_CMD} "https://github.com/docker/machine/releases/download/${DOCKER_MACHINE_VERSION}/docker-machine-$(uname -s)-$(uname -m)" > /usr/local/bin/docker-machine
-# 	eval ${CMD_PREFIX} chmod +x /usr/local/bin/docker-machine
-# fi
-
-# echo -e "    [${green}*${reset}] docker machine"
 
 # <---> CONTAINERIZATION <--->
 
