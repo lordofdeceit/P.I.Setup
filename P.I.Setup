@@ -552,17 +552,22 @@ fi
 
 if [ -x "$(command -v git)" ]
 then
-	# Your Identity
-	git config --global user.name "Alex Munene"
-	git config --global user.email "62714471+enenumxela@users.noreply.github.com"
+	if [ "${GIT_USERNAME}" != "" ]
+	then
+		git config --global user.name "${GIT_USERNAME}"
+	fi
+	if [ "${GIT_USEREMAIL}" != "" ]
+	then
+		git config --global user.email "${GIT_USEREMAIL}"
+	fi
 	# Your Editor
 	git config --global core.editor vim
 	# Your default branch name
 	git config --global init.defaultBranch main
 
-	if [ "${GITHUB_TOKEN}" != "" ]
+	if [ "${GITHUB_USERNAME}" != "" ] && [ "${GITHUB_PERSONAL_ACCESS_TOKEN}" != "" ]
 	then
-		git config --global url."https://enenumxela:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+		git config --global url."https://${GITHUB_USERNAME}:${GITHUB_PERSONAL_ACCESS_TOKEN}@github.com/".insteadOf "https://github.com/"
 	fi
 fi
 echo -e "        [${green}*${reset}] git"
@@ -738,15 +743,15 @@ then
 fi
 echo -e "        [${green}*${reset}] python3"
 
-if [ ${isVM} == False ] && [ ${isWSL} == False ]
-then
-	printf "        [${blue}+${reset}] latex"
-	printf "\r"
-	eval ${CMD_PREFIX} apt install -y -qq texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
-	echo -e "        [${green}*${reset}] latex"
-else
-	echo -e "        [${green}*${reset}] latex (skipped)"
-fi
+# if [ ${isVM} == False ] && [ ${isWSL} == False ]
+# then
+# 	printf "        [${blue}+${reset}] latex"
+# 	printf "\r"
+# 	eval ${CMD_PREFIX} apt install -y -qq texlive-latex-extra latexmk texlive-extra-utils &> /dev/null
+# 	echo -e "        [${green}*${reset}] latex"
+# else
+# 	echo -e "        [${green}*${reset}] latex (skipped)"
+# fi
 
 echo -e "[${blue}>${reset}] system clean up"
 

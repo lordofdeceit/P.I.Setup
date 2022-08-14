@@ -7,7 +7,10 @@ A post installation setup script.
 Export:
 
 ```bash
-export GITHUB_TOKEN=""
+export GIT_USERNAME=""
+export GIT_USEREMAIL=""
+export GITHUB_USERNAME=""
+export GITHUB_PERSONAL_ACCESS_TOKEN=""
 ```
 
 Then run the script:
